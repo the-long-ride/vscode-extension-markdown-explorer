@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { DocumentHistoryPanel } from '../components/History/DocumentHistoryPanel';
 import { DOCUMENT_HISTORY_OPEN_EVENT } from '../components/shared/ToolbarActionMenu';
+import { DOCUMENT_COMPARE_REQUEST_EVENT, type DocumentCompareRequest } from '../editor/useDocumentConflictResolution';
 import { documentSessionKey } from '../editor/documentSession';
 import type { GitComparisonSources, GitRevisionSnapshot, GitRevisionSummary } from '../history/contracts';
 import { createHistoryClient, type HistoryClient } from '../history/historyClient';
@@ -62,9 +63,27 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleOpen = () => openHistory();
+    const handleCompare = (event: Event) => {
+      const detail = (event as CustomEvent<DocumentCompareRequest>).detail;
+      if (!detail?.filePath) return;
+      setView({
+        filePath: detail.filePath,
+        mode: 'diff',
+        comparison: {
+          leftSource: detail.leftSource,
+          rightSource: detail.rightSource,
+          leftLabel: detail.leftLabel,
+          rightLabel: detail.rightLabel,
+        },
+      });
+    };
     window.addEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
-    return () => window.removeEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
-  }, [openHistory]);
+    window.addEventListener(DOCUMENT_COMPARE_REQUEST_EVENT, handleCompare);
+    return () => {
+      window.removeEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
+      window.removeEventListener(DOCUMENT_COMPARE_REQUEST_EVENT, handleCompare);
+    };
+  }, [openHistory, setView]);
 
   const closeHistory = useCallback(() => setPanelFilePath(null), []);
 
