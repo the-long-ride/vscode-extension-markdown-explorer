@@ -30,7 +30,7 @@ interface PaneViewProps {
   onScrollChange: (paneId: PaneId, scrollTop: number) => void;
 }
 
-const EDITABLE_MODES: readonly DocumentViewMode[] = ['rendered', 'inline-edit', 'plain'];
+const EDITABLE_MODES = ['rendered', 'inline-edit', 'plain'] as const satisfies readonly DocumentViewMode[];
 
 function SplitPaneView({
   paneId,

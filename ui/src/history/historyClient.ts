@@ -40,19 +40,22 @@ export function createHistoryClient(
   let disposed = false;
 
   const unsubscribe = bridge.onMessage((message: HostMessage) => {
-    if (!('requestId' in message)) return;
-    const request = pending.get(message.requestId);
+    const requestId = 'requestId' in message && typeof message.requestId === 'string'
+      ? message.requestId
+      : null;
+    if (!requestId) return;
+    const request = pending.get(requestId);
     if (!request) return;
 
     switch (request.kind) {
       case 'capability':
         if (message.command !== 'gitCapabilityResult') return;
-        pending.delete(message.requestId);
+        pending.delete(requestId);
         request.resolve(message.capability);
         return;
       case 'history':
         if (message.command !== 'documentHistoryResult') return;
-        pending.delete(message.requestId);
+        pending.delete(requestId);
         if (!message.ok) {
           request.reject(failure(message.reason, 'Unable to read document history'));
           return;
@@ -61,7 +64,7 @@ export function createHistoryClient(
         return;
       case 'revision':
         if (message.command !== 'gitRevisionResult') return;
-        pending.delete(message.requestId);
+        pending.delete(requestId);
         if (!message.ok || !message.snapshot) {
           request.reject(failure(message.reason, 'Unable to read Git revision'));
           return;
@@ -70,7 +73,7 @@ export function createHistoryClient(
         return;
       case 'comparison':
         if (message.command !== 'gitComparisonResult') return;
-        pending.delete(message.requestId);
+        pending.delete(requestId);
         if (!message.ok || typeof message.leftSource !== 'string' || typeof message.rightSource !== 'string') {
           request.reject(failure(message.reason, 'Unable to compare Git revisions'));
           return;
