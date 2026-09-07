@@ -31,6 +31,7 @@ export function ContentTabs() {
     closeContentTabsToRight,
     closeOtherContentTabs,
     closeAllContentTabs,
+    guardUnsavedChanges = (_filePaths: string[], commit: () => void) => commit(),
     setContentTabHtmlPreview,
   } = useAppState();
   const currentLang = state.settings.language || "en";
@@ -82,7 +83,7 @@ export function ContentTabs() {
     closeInProgressRef.current = false;
   }, []);
 
-  const requestTabClose = useCallback((filePaths: string[], commitClose: () => void) => {
+  const commitTabClose = useCallback((filePaths: string[], commitClose: () => void) => {
     if (closeInProgressRef.current || filePaths.length === 0) return;
 
     const prefersReducedMotion = typeof window === 'undefined'
@@ -128,6 +129,11 @@ export function ContentTabs() {
     }, CONTENT_TAB_CLOSE_FADE_MS);
     closeTimersRef.current = [fadeTimer];
   }, []);
+
+  const requestTabClose = useCallback((filePaths: string[], commitClose: () => void) => {
+    if (closeInProgressRef.current || filePaths.length === 0) return;
+    guardUnsavedChanges(filePaths, () => commitTabClose(filePaths, commitClose));
+  }, [commitTabClose, guardUnsavedChanges]);
 
   const handleContextMenuAction = useCallback(
     (action: TabContextMenuAction) => {
