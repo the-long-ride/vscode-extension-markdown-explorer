@@ -31,10 +31,29 @@ describe('split active-pane navigation', () => {
     const { result } = renderHook(() => useAppState(), { wrapper: wrapperFor(bridge) });
 
     act(() => {
-      result.current.dispatch({ type: 'SET_SPLIT_PANE_FILE', paneId: 'primary', filePath: '/docs/a.md' } as any);
+      result.current.dispatch({
+        type: 'RENDER_CONTENT',
+        msg: {
+          command: 'renderContent',
+          html: '<h1>A</h1>',
+          markdownSource: '# A',
+          frontmatter: {},
+          toc: [],
+          filePath: '/docs/a.md',
+          relativePath: 'a.md',
+          title: 'A',
+          fileList: [],
+          previewInfo: null,
+          documentWrite: { supported: true, revision: '1:3' },
+        },
+      });
       result.current.dispatch({ type: 'OPEN_SPLIT_VIEW', filePath: '/docs/b.md' } as any);
     });
-    expect(result.current.state.splitView.activePane).toBe('secondary');
+    expect(result.current.state.splitView).toMatchObject({
+      activePane: 'secondary',
+      primary: { filePath: '/docs/a.md' },
+      secondary: { filePath: '/docs/b.md' },
+    });
 
     (bridge.postMessage as ReturnType<typeof vi.fn>).mockClear();
     act(() => result.current.navigate('/docs/c.md'));
