@@ -1,6 +1,7 @@
 interface SplitDividerProps {
   ratio: number;
   onRatioChange: (ratio: number) => void;
+  label?: string;
 }
 
 const MIN_RATIO = 0.25;
@@ -11,7 +12,7 @@ function clampRatio(value: number): number {
   return Math.min(MAX_RATIO, Math.max(MIN_RATIO, Math.round(value * 100) / 100));
 }
 
-export function SplitDivider({ ratio, onRatioChange }: SplitDividerProps) {
+export function SplitDivider({ ratio, onRatioChange, label = 'Resize document panes' }: SplitDividerProps) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     let next: number | null = null;
     if (event.key === 'ArrowLeft') next = ratio - STEP;
@@ -52,7 +53,7 @@ export function SplitDivider({ ratio, onRatioChange }: SplitDividerProps) {
     <div
       className="split-document-divider"
       role="separator"
-      aria-label="Resize document panes"
+      aria-label={label}
       aria-orientation="vertical"
       aria-valuemin={25}
       aria-valuemax={75}
