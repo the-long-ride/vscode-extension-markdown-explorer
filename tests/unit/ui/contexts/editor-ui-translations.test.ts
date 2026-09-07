@@ -12,6 +12,9 @@ const REQUIRED_LABELS = [
   'inlineSourceLabel',
   'apply',
   'cancel',
+  'unsavedChanges',
+  'diskVersion',
+  'myEdit',
 ] as const;
 
 describe('editor UI translations', () => {
