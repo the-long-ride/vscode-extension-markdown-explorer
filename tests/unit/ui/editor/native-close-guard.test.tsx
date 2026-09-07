@@ -64,9 +64,10 @@ describe('renderer native close guard', () => {
     act(() => cancel?.());
 
     expect(bridge.postMessage).toHaveBeenCalledWith({
-      command: 'cancelNativeClose',
+      command: 'confirmNativeClose',
       requestId: 'native-close-3',
       intent: 'window',
+      cancelled: true,
     });
   });
 

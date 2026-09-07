@@ -51,12 +51,17 @@ function createNativeCloseGuard({ app, getMainWindow, sendHostMessage, platform 
     return false;
   }
 
-  function confirm(message) {
+  function cancel(message) {
     if (!pendingRequest) return false;
-    if (!message || message.requestId !== pendingRequest.requestId || message.intent !== pendingRequest.intent) {
-      return false;
-    }
+    if (!message || message.requestId !== pendingRequest.requestId || message.intent !== pendingRequest.intent) return false;
+    pendingRequest = null;
+    return true;
+  }
 
+  function confirm(message) {
+    if (message?.cancelled === true) return cancel(message);
+    if (!pendingRequest) return false;
+    if (!message || message.requestId !== pendingRequest.requestId || message.intent !== pendingRequest.intent) return false;
     const intent = pendingRequest.intent;
     pendingRequest = null;
     if (intent === 'app') {
@@ -64,7 +69,6 @@ function createNativeCloseGuard({ app, getMainWindow, sendHostMessage, platform 
       app?.quit?.();
       return true;
     }
-
     allowNextWindowClose = true;
     getMainWindow?.()?.close?.();
     return true;
@@ -89,6 +93,7 @@ function createNativeCloseGuard({ app, getMainWindow, sendHostMessage, platform 
     requestAppQuit,
     handleBeforeQuit,
     confirm,
+    cancel,
     closeApprovedWindow,
     isAppQuitApproved,
   };

@@ -18,7 +18,7 @@ type NativeCloseBridge = {
 interface UseNativeCloseGuardOptions {
   readonly bridge: NativeCloseBridge;
   readonly sessions: Readonly<Record<string, EditableDocumentSession>>;
-  readonly guardUnsavedChanges: (filePaths: string[], commit: () => void) => void;
+  readonly guardUnsavedChanges: (filePaths: string[], commit: () => void, cancel?: () => void) => void;
 }
 
 export function useNativeCloseGuard({ bridge, sessions, guardUnsavedChanges }: UseNativeCloseGuardOptions) {
@@ -33,6 +33,13 @@ export function useNativeCloseGuard({ bridge, sessions, guardUnsavedChanges }: U
         command: 'confirmNativeClose',
         requestId: request.requestId,
         intent: request.intent,
+      });
+    }, () => {
+      bridge.postMessage({
+        command: 'confirmNativeClose',
+        requestId: request.requestId,
+        intent: request.intent,
+        cancelled: true,
       });
     });
   }), [bridge, guardUnsavedChanges, sessions]);

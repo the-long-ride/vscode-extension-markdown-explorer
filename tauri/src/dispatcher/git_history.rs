@@ -91,6 +91,7 @@ fn resolve_context(workspace_path: &Path) -> Result<(PathBuf, PathBuf), GitHisto
     let trimmed = root.trim();
     if trimmed.is_empty() { return Err(error("not-repository", "The workspace is not a Git repository")); }
     let repository_root = PathBuf::from(trimmed);
+    let repository_root = fs::canonicalize(&repository_root).unwrap_or(repository_root);
     let workspace_root = fs::canonicalize(&workspace).unwrap_or(workspace);
     if !workspace_root.starts_with(&repository_root) {
         return Err(error("not-repository", "The workspace is outside the Git repository"));

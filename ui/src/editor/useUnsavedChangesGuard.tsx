@@ -7,6 +7,7 @@ import { collectDirtyDocumentPaths, type UnsavedChangesChoice } from './unsavedG
 interface PendingGuard {
   readonly filePaths: string[];
   readonly commit: () => void;
+  readonly cancel?: () => void;
 }
 
 interface UseUnsavedChangesGuardOptions {
@@ -16,7 +17,7 @@ interface UseUnsavedChangesGuardOptions {
 }
 
 export interface UnsavedChangesGuardController {
-  readonly guardUnsavedChanges: (filePaths: string[], commit: () => void) => void;
+  readonly guardUnsavedChanges: (filePaths: string[], commit: () => void, cancel?: () => void) => void;
   readonly unsavedChangesModal: ReactNode;
 }
 
@@ -31,14 +32,14 @@ export function useUnsavedChangesGuard({
 }: UseUnsavedChangesGuardOptions): UnsavedChangesGuardController {
   const [pending, setPending] = useState<PendingGuard | null>(null);
 
-  const guardUnsavedChanges = useCallback((filePaths: string[], commit: () => void) => {
+  const guardUnsavedChanges = useCallback((filePaths: string[], commit: () => void, cancel?: () => void) => {
     const dirty = new Set(collectDirtyDocumentPaths(sessions).map(documentSessionKey));
     const guardedPaths = filePaths.filter((path) => dirty.has(documentSessionKey(path)));
     if (guardedPaths.length === 0) {
       commit();
       return;
     }
-    setPending({ filePaths: guardedPaths, commit });
+    setPending({ filePaths: guardedPaths, commit, cancel });
   }, [sessions]);
 
   const advance = useCallback((snapshot: PendingGuard) => {
@@ -54,6 +55,7 @@ export function useUnsavedChangesGuard({
     if (!pending) return;
     if (choice === 'cancel') {
       setPending(null);
+      pending.cancel?.();
       return;
     }
     const path = pending.filePaths[0];
