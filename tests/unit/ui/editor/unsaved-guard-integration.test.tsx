@@ -60,12 +60,12 @@ function renderProvider() {
   return { bridge, filePath };
 }
 
-function guard(filePath: string, commit: () => void) {
+function guard(filePath: string, commit: () => void, cancel?: () => void) {
   const guarded = context as typeof context & {
-    guardUnsavedChanges?: (filePaths: string[], commit: () => void) => void;
+    guardUnsavedChanges?: (filePaths: string[], commit: () => void, cancel?: () => void) => void;
   };
   expect(guarded?.guardUnsavedChanges).toBeTypeOf('function');
-  guarded?.guardUnsavedChanges?.([filePath], commit);
+  guarded?.guardUnsavedChanges?.([filePath], commit, cancel);
 }
 
 describe('AppStateProvider unsaved guard flow', () => {
@@ -75,6 +75,16 @@ describe('AppStateProvider unsaved guard flow', () => {
     act(() => guard(filePath, commit));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it('invokes the optional cancellation callback', async () => {
+    const { filePath } = renderProvider();
+    const commit = vi.fn();
+    const cancel = vi.fn();
+    act(() => guard(filePath, commit, cancel));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(cancel).toHaveBeenCalledTimes(1);
     expect(commit).not.toHaveBeenCalled();
   });
 

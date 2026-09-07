@@ -26,7 +26,7 @@ describe('renderer native close guard', () => {
     const filePath = '/docs/a.md';
     const session = replaceWorkingSource(createEditableDocumentSession(filePath, '# A', '1:3'), '# B');
     let commit: (() => void) | null = null;
-    const guardUnsavedChanges = vi.fn((_paths: string[], next: () => void) => { commit = next; });
+    const guardUnsavedChanges = vi.fn((_paths: string[], next: () => void, _cancel?: () => void) => { commit = next; });
 
     renderHook(() => useNativeCloseGuard({
       bridge: bridge as any,
@@ -36,7 +36,7 @@ describe('renderer native close guard', () => {
 
     act(() => emit({ command: 'nativeCloseRequested', requestId: 'native-close-1', intent: 'app' }));
 
-    expect(guardUnsavedChanges).toHaveBeenCalledWith([filePath], expect.any(Function));
+    expect(guardUnsavedChanges).toHaveBeenCalledWith([filePath], expect.any(Function), expect.any(Function));
     expect(bridge.postMessage).not.toHaveBeenCalled();
 
     act(() => commit?.());
@@ -47,14 +47,37 @@ describe('renderer native close guard', () => {
     });
   });
 
+  it('reports cancellation back to the native close coordinator', () => {
+    const { bridge, emit } = createBridge();
+    const filePath = '/docs/a.md';
+    const session = replaceWorkingSource(createEditableDocumentSession(filePath, '# A', '1:3'), '# B');
+    let cancel: (() => void) | null = null;
+    const guardUnsavedChanges = vi.fn((_paths: string[], _commit: () => void, onCancel?: () => void) => { cancel = onCancel ?? null; });
+
+    renderHook(() => useNativeCloseGuard({
+      bridge: bridge as any,
+      sessions: { [filePath]: session },
+      guardUnsavedChanges,
+    }));
+
+    act(() => emit({ command: 'nativeCloseRequested', requestId: 'native-close-3', intent: 'window' }));
+    act(() => cancel?.());
+
+    expect(bridge.postMessage).toHaveBeenCalledWith({
+      command: 'cancelNativeClose',
+      requestId: 'native-close-3',
+      intent: 'window',
+    });
+  });
+
   it('approves immediately when there are no dirty sessions', () => {
     const { bridge, emit } = createBridge();
-    const guardUnsavedChanges = vi.fn((_paths: string[], commit: () => void) => commit());
+    const guardUnsavedChanges = vi.fn((_paths: string[], commit: () => void, _cancel?: () => void) => commit());
 
     renderHook(() => useNativeCloseGuard({ bridge: bridge as any, sessions: {}, guardUnsavedChanges }));
     act(() => emit({ command: 'nativeCloseRequested', requestId: 'native-close-2', intent: 'window' }));
 
-    expect(guardUnsavedChanges).toHaveBeenCalledWith([], expect.any(Function));
+    expect(guardUnsavedChanges).toHaveBeenCalledWith([], expect.any(Function), expect.any(Function));
     expect(bridge.postMessage).toHaveBeenCalledWith({
       command: 'confirmNativeClose',
       requestId: 'native-close-2',

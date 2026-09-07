@@ -95,6 +95,23 @@ describe('Electron native close guard', () => {
     expect(sendHostMessage).toHaveBeenCalledWith(expect.objectContaining({ command: 'nativeCloseRequested', intent: 'app' }));
   });
 
+  it('clears a canceled request so a later close attempt starts a fresh request', () => {
+    const window = makeWindow();
+    const sendHostMessage = vi.fn();
+    const guard = createNativeCloseGuard({ app: { quit: vi.fn() }, getMainWindow: () => window, sendHostMessage, platform: 'darwin' });
+    guard.attachWindow(window);
+
+    window.trigger('close', makeEvent());
+    const windowRequest = sendHostMessage.mock.calls[0][0];
+    expect(windowRequest.intent).toBe('window');
+    expect(guard.cancel(windowRequest)).toBe(true);
+
+    guard.requestAppQuit();
+    const appRequest = sendHostMessage.mock.calls[1][0];
+    expect(appRequest.intent).toBe('app');
+    expect(appRequest.requestId).not.toBe(windowRequest.requestId);
+  });
+
   it('lets the already-guarded renderer title-bar close pass without another prompt', () => {
     const window = makeWindow();
     const app = { quit: vi.fn() };
