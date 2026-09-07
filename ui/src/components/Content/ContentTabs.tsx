@@ -164,7 +164,7 @@ export function ContentTabs() {
           }
           break;
         case "openInSplit": {
-          const replacedPath = state.splitView.enabled ? state.splitView.secondary.filePath : null;
+          const replacedPath = state.splitView?.enabled ? state.splitView.secondary.filePath : null;
           const open = () => openInSplit(contextMenu.filePath);
           if (replacedPath && replacedPath !== contextMenu.filePath) {
             const session = state.documentSessions?.[documentSessionKey(replacedPath)];
@@ -227,8 +227,8 @@ export function ContentTabs() {
       state.contentTabs,
       state.documentSessions,
       state.settings.defaultHtmlPreview,
-      state.splitView.enabled,
-      state.splitView.secondary.filePath,
+      state.splitView?.enabled,
+      state.splitView?.secondary.filePath,
       swapSplitPanes,
       t?.previewActions?.openError,
     ],
