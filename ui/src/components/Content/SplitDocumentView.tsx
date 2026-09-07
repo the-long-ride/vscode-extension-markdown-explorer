@@ -7,6 +7,10 @@ interface SplitDocumentViewProps {
   activePane: PaneId;
   primary: ReactNode;
   secondary: ReactNode;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  closeSecondaryLabel?: string;
+  resizeLabel?: string;
   onActivatePane: (paneId: PaneId) => void;
   onRatioChange: (ratio: number) => void;
   onCloseSecondary: () => void;
@@ -17,6 +21,10 @@ export function SplitDocumentView({
   activePane,
   primary,
   secondary,
+  primaryLabel = 'Primary document',
+  secondaryLabel = 'Secondary document',
+  closeSecondaryLabel = 'Close secondary pane',
+  resizeLabel = 'Resize document panes',
   onActivatePane,
   onRatioChange,
   onCloseSecondary,
@@ -31,22 +39,22 @@ export function SplitDocumentView({
       <section
         className={`split-document-pane split-document-pane--primary${activePane === 'primary' ? ' is-active' : ''}`}
         role="region"
-        aria-label="Primary document"
+        aria-label={primaryLabel}
         onPointerDown={() => onActivatePane('primary')}
       >
         {primary}
       </section>
-      <SplitDivider ratio={ratio} onRatioChange={onRatioChange} />
+      <SplitDivider ratio={ratio} onRatioChange={onRatioChange} label={resizeLabel} />
       <section
         className={`split-document-pane split-document-pane--secondary${activePane === 'secondary' ? ' is-active' : ''}`}
         role="region"
-        aria-label="Secondary document"
+        aria-label={secondaryLabel}
         onPointerDown={() => onActivatePane('secondary')}
       >
         <button
           type="button"
           className="split-document-pane__close"
-          aria-label="Close secondary pane"
+          aria-label={closeSecondaryLabel}
           onClick={onCloseSecondary}
         >
           ×
