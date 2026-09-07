@@ -32,10 +32,7 @@
 
 .document-history-panel__header,
 .document-diff-view__toolbar,
-.git-revision-view__header {
-  justify-content: space-between;
-}
-
+.git-revision-view__header { justify-content: space-between; }
 .document-history-panel__header h2 { margin: 0; }
 .document-history-panel__path,
 .document-history-panel__revision-path,
@@ -56,7 +53,6 @@
 .document-diff-view__toolbar { position: sticky; top: 0; z-index: 2; padding: 10px 12px; background: var(--bg); border-bottom: var(--stroke-w) solid var(--border); }
 .git-revision-view__header > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .git-revision-view__body { max-width: none; padding-top: 18px; }
-
 .document-diff-view__toolbar > div { display: flex; gap: 6px; }
 .document-diff-view__toolbar .is-active { border-color: var(--accent); }
 .document-diff-view__labels { justify-content: space-between; padding: 8px 10px; color: var(--tx-2); font-size: 12px; }
@@ -78,7 +74,8 @@
 .rendered-diff-view__pane--removed .is-diff-changed { outline: 2px solid color-mix(in srgb, var(--danger, #d33) 55%, transparent); background: color-mix(in srgb, var(--danger, #d33) 8%, transparent); }
 .rendered-diff-view__pane--added .is-diff-changed { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
-body.is-history-view .topbar__markdown-editing { display: none; }
+body:has(.git-revision-view) .topbar__markdown-editing,
+body:has(.document-diff-view) .topbar__markdown-editing { display: none; }
 
 @media (max-width: 760px) {
   .rendered-diff-view { grid-template-columns: minmax(0, 1fr); }
