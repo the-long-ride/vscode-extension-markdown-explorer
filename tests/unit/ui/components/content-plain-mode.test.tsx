@@ -10,6 +10,10 @@ import {
 } from '../../../../ui/src/editor/documentSession';
 import { getTranslations } from '../../../../ui/src/contexts/translations';
 
+vi.mock('../../../../ui/src/contexts/HistoryContext', () => ({
+  useHistory: () => ({ historyViews: {}, clearHistoryView: vi.fn() }),
+}));
+
 function renderPlainMode() {
   const filePath = '/docs/a.md';
   const session = setDocumentEditMode(
