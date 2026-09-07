@@ -7,6 +7,7 @@ import type { GitComparisonSources, GitRevisionSnapshot, GitRevisionSummary } fr
 import { createHistoryClient, type HistoryClient } from '../history/historyClient';
 import type { PaneId } from '../split-view/paneState';
 import { useAppState } from './AppStateContext';
+import { getEditorUiTranslations } from './editorUiTranslations';
 import { getHistoryTranslations } from './historyTranslations';
 import { usePlatform } from './PlatformContext';
 
@@ -40,6 +41,7 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
   const bridge = usePlatform();
   const { state, setSplitPaneMode } = useAppState();
   const t = getHistoryTranslations(state.settings.language);
+  const editorT = getEditorUiTranslations(state.settings.language);
   const client = useMemo(() => createHistoryClient(bridge), [bridge]);
   const [panelFilePath, setPanelFilePath] = useState<string | null>(null);
   const [historyViews, setHistoryViews] = useState<Partial<Record<HistoryViewTarget, HistoryViewEntry>>>({});
@@ -62,7 +64,16 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
     const handleCompare = (event: Event) => {
       const detail = (event as CustomEvent<DocumentCompareRequest>).detail;
       if (!detail?.filePath) return;
-      setView({ filePath: detail.filePath, mode: 'diff', comparison: { leftSource: detail.leftSource, rightSource: detail.rightSource, leftLabel: detail.leftLabel, rightLabel: detail.rightLabel } });
+      setView({
+        filePath: detail.filePath,
+        mode: 'diff',
+        comparison: {
+          leftSource: detail.leftSource,
+          rightSource: detail.rightSource,
+          leftLabel: editorT.diskVersion,
+          rightLabel: editorT.myEdit,
+        },
+      });
     };
     window.addEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
     window.addEventListener(DOCUMENT_COMPARE_REQUEST_EVENT, handleCompare);
@@ -70,7 +81,7 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
       window.removeEventListener(DOCUMENT_COMPARE_REQUEST_EVENT, handleCompare);
     };
-  }, [openHistory, setView]);
+  }, [editorT.diskVersion, editorT.myEdit, openHistory, setView]);
 
   const closeHistory = useCallback(() => setPanelFilePath(null), []);
   const viewRevision = useCallback(async (revision: GitRevisionSummary) => {

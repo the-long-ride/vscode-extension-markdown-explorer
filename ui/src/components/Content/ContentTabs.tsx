@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppState } from "../../contexts/AppStateContext";
+import { getEditorUiTranslations } from "../../contexts/editorUiTranslations";
 import { getTranslations } from "../../contexts/translations";
 import { documentSessionKey, isDocumentDirty } from "../../editor/documentSession";
 import {
@@ -40,6 +41,7 @@ export function ContentTabs() {
   } = useAppState();
   const currentLang = state.settings.language || "en";
   const t = getTranslations(currentLang);
+  const editorT = getEditorUiTranslations(currentLang);
   const bridge = usePlatform();
   const {
     tabsScrollRef, scrollbarTrackRef, scrollbarThumbRef, scrollbarMetrics,
@@ -300,7 +302,7 @@ export function ContentTabs() {
             : '';
           return <ContentTabItem key={tab.filePath} tab={tab} active={active} label={label}
             closePhaseClass={closePhaseClass} dragged={draggedTabPath === tab.filePath}
-            closeLabel={t.tooltips.closeTab} dirty={dirty} dirtyLabel="Unsaved changes"
+            closeLabel={t.tooltips.closeTab} dirty={dirty} dirtyLabel={editorT.unsavedChanges}
             draggedTabPathRef={draggedTabPathRef}
             didDragRef={didDragRef} ghostRef={ghostRef} tabElementsRef={tabElementsRef}
             onSetDraggedPath={setDraggedTabPath} onSetGhostLabel={setGhostLabel}

@@ -11,8 +11,6 @@ export interface DocumentCompareRequest {
   readonly filePath: string;
   readonly leftSource: string;
   readonly rightSource: string;
-  readonly leftLabel: string;
-  readonly rightLabel: string;
 }
 
 interface UseDocumentConflictResolutionOptions {
@@ -53,8 +51,6 @@ export function useDocumentConflictResolution({
       filePath: session.filePath,
       leftSource: session.conflict.diskSource,
       rightSource: session.source,
-      leftLabel: 'Disk version',
-      rightLabel: 'My edit',
     };
     window.dispatchEvent(new CustomEvent<DocumentCompareRequest>(DOCUMENT_COMPARE_REQUEST_EVENT, { detail }));
   }, [session]);
