@@ -19,7 +19,8 @@ export function buildContentTabContextMenuItems(
   const htmlPreview = tab.htmlPreviewOverride ?? state.settings.defaultHtmlPreview;
   const toggleHtmlPreviewShortcut = getEnabledShortcut(state.settings, 'toggleHtmlPreview');
   const splitT = getSplitViewTranslations(state.settings.language);
-  const splitActive = state.splitView.enabled;
+  const splitView = state.splitView;
+  const splitActive = Boolean(splitView?.enabled);
   return [
     ...(isHtml && supportsLocalFileBrowserOpen(state.appRuntime)
       ? [{ action: 'openInBrowser' as const, label: translations.openInBrowser, icon: <InternetIcon /> }]
@@ -33,7 +34,7 @@ export function buildContentTabContextMenuItems(
       action: 'openInSplit',
       label: splitT.openInSplit,
       dividerBefore: true,
-      disabled: splitActive && state.splitView.secondary.filePath === tab.filePath,
+      disabled: splitActive && splitView?.secondary.filePath === tab.filePath,
     },
     ...(splitActive ? [
       { action: 'moveToOtherPane' as const, label: splitT.moveToOtherPane },
