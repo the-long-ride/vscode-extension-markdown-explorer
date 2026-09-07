@@ -22,22 +22,20 @@ export function SplitDocumentView({
   onCloseSecondary,
 }: SplitDocumentViewProps) {
   return (
-    <div className="split-document-view" data-active-pane={activePane}>
+    <div className="split-document-view" data-active-pane={activePane} data-split-percent={Math.round(ratio * 100)}>
       <section
-        className={`split-document-pane${activePane === 'primary' ? ' is-active' : ''}`}
+        className={`split-document-pane split-document-pane--primary${activePane === 'primary' ? ' is-active' : ''}`}
         role="region"
         aria-label="Primary document"
-        style={{ flexBasis: `${ratio * 100}%` }}
         onPointerDown={() => onActivatePane('primary')}
       >
         {primary}
       </section>
       <SplitDivider ratio={ratio} onRatioChange={onRatioChange} />
       <section
-        className={`split-document-pane${activePane === 'secondary' ? ' is-active' : ''}`}
+        className={`split-document-pane split-document-pane--secondary${activePane === 'secondary' ? ' is-active' : ''}`}
         role="region"
         aria-label="Secondary document"
-        style={{ flexBasis: `${(1 - ratio) * 100}%` }}
         onPointerDown={() => onActivatePane('secondary')}
       >
         <button
