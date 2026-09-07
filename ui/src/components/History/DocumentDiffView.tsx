@@ -1,0 +1,41 @@
+import { useState } from 'react';
+import { RenderedDiffView } from './RenderedDiffView';
+import { SourceDiffView } from './SourceDiffView';
+
+export type DocumentDiffMode = 'source' | 'rendered';
+
+interface DocumentDiffViewProps {
+  leftSource: string;
+  rightSource: string;
+  leftLabel?: string;
+  rightLabel?: string;
+  defaultMode?: DocumentDiffMode;
+  onReturnToCurrent?: () => void;
+}
+
+export function DocumentDiffView({
+  leftSource,
+  rightSource,
+  leftLabel,
+  rightLabel,
+  defaultMode = 'source',
+  onReturnToCurrent,
+}: DocumentDiffViewProps) {
+  const [mode, setMode] = useState<DocumentDiffMode>(defaultMode);
+  return (
+    <section className="document-diff-view" data-testid="document-diff-view">
+      <header className="document-diff-view__toolbar">
+        <div role="group" aria-label="Diff mode">
+          <button type="button" className={`btn${mode === 'source' ? ' is-active' : ''}`} aria-pressed={mode === 'source'} onClick={() => setMode('source')}>Source Diff</button>
+          <button type="button" className={`btn${mode === 'rendered' ? ' is-active' : ''}`} aria-pressed={mode === 'rendered'} onClick={() => setMode('rendered')}>Rendered Diff</button>
+        </div>
+        {onReturnToCurrent && <button type="button" className="btn" onClick={onReturnToCurrent}>Return to current</button>}
+      </header>
+      {mode === 'source' ? (
+        <SourceDiffView leftSource={leftSource} rightSource={rightSource} leftLabel={leftLabel} rightLabel={rightLabel} />
+      ) : (
+        <RenderedDiffView leftSource={leftSource} rightSource={rightSource} leftLabel={leftLabel} rightLabel={rightLabel} />
+      )}
+    </section>
+  );
+}
