@@ -36,6 +36,7 @@ export function DocumentSurface({
       {mode === 'plain' ? (
         <PlainMarkdownEditor
           value={source}
+          disabled={false}
           ariaLabel={editorT.plainSourceLabel}
           onChange={onSourceChange}
           onSave={() => { void onSave(); }}
