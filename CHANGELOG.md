@@ -2,6 +2,21 @@
 
 All notable changes to the **Markdown Explorer** extension will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Local Markdown editing**: Added shared working-copy editing with inline rendered-section editing and full plain-source mode, keyboard save handling, unsaved-change guards, and conflict resolution across writable runtimes.
+- **Split document view**: Added a resizable two-pane document workspace with independent active pane, file, mode, and scroll state, including rendered, inline edit, plain source, Git revision, and diff modes.
+- **Local Git history and diff viewer**: Added read-only per-document Git history, revision viewing, revision-to-revision/current/working-copy comparisons, rename-following history, and source/rendered diff views in Electron, Tauri, and VS Code.
+- **Localized editor and history UI**: Added local editing, split-view, Git history, and diff labels across all 9 supported locales.
+
+### Changed
+- **Cross-runtime host contracts**: Added correlated Git capability/history/revision/comparison messages and safe local document-write contracts, with Chromium reporting Git history as unsupported while preserving protocol parity.
+- **Runtime and protocol documentation**: Synchronized README, runtime capability matrix, protocol catalogs, current application state, and release acceptance documentation for local editing, split view, and Git history.
+
+### Fixed
+- **Editor/history integration stability**: Aligned split-view state and History context integration across content tabs and standalone render surfaces, preserving strict History action-provider requirements without breaking isolated UI rendering.
+
 ---
 
 ## [v1.6.7] — 2026-09-06
@@ -182,7 +197,7 @@ All notable changes to the **Markdown Explorer** extension will be documented in
 - **Shortcut Label Typography**: Increased font weight and color contrast for shortcut action labels in Settings Modal for clear, effortless legibility.
 - **Manual Tests Directory**: Renamed root `test/` folder to `manual-tests/` and updated virtual workspace import globs (`manual-tests/*.{md,mdx}`) and contract tests.
 - **Sidebar Pinning — Root Level Hoisting**: When a file or folder located inside a parent subfolder is pinned, it is now hoisted and displayed directly at the root level of the sidebar tree instead of remaining nested inside its subfolder.
-- **Unpinned Button Icon**: Updated unpinned item menu and clear-pins actions to use a dedicated dual-path SVG (`UnpinIcon`) with support for the active theme accent color (`var(--accent, #EF4136)`).
+- **Unpinned Button Icon**: Updated unpinned item menu and clear-pins actions to use a dedicated dual-path SVG (`UnpinIcon`) with support for the active theme accent color (`var(--accent, #EF4136`).
 - **Search Overlay — Theme-consistent UI**: Standardized all search overlay button border radii (`border-radius: var(--r)`) to match the active theme across all variants. The close modal button is now borderless. Search result rows also use `var(--r)` to align with the theme's rounding style.
 - **Search Overlay — Unified input row height**: Standardized `.search-overlay-input`, case-toggle, and preview-toggle button heights to `32px` across all themes for a uniform input row.
 - **Scrollbars — Theme-consistent radius**: All app scrollbar thumbs (sidebar, TOC, code blocks, search overlay, settings) now use `var(--r-s, var(--r))` for border-radius, matching the active theme. The Raw Grid theme forces square `0px` scrollbar thumbs via `!important` overrides.
@@ -442,7 +457,7 @@ All notable changes to the **Markdown Explorer** extension will be documented in
 ### Added
 - **Windows Portable Self-Update Flow**: Desktop app on Windows can now download and apply updates in-place without requiring a separate installer. Settings shows a progress card with download percentage, scheduled-on-exit, and apply-now actions. An external helper process swaps the running `.exe` on quit and writes a result code so the next launch can report success or failure. All update strings are fully localized across the 9 supported UI languages.
 - **Workspace File Watcher**: Desktop now watches the active workspace directory for file-system changes (create, rename, delete) and automatically refreshes the sidebar and scope focus state with a 120 ms debounce, so the file tree stays in sync without a manual refresh.
-- **Scope Focus Live Sync**: Scope focus selection is now reconciled automatically when the workspace file list changes. New files that belong to a previously selected folder are included automatically; removed files are dropped. Folder-level selections track all descendant files so adding files inside a focused folder never breaks the scope.
+- **Scope Focus Live Sync**: Scope focus selection is reconciled automatically when the workspace file list changes. New files that belong to a previously selected folder are included automatically; removed files are dropped. Folder-level selections track all descendant files so adding files inside a focused folder never breaks the scope.
 - **Native TXT File Support**: Added native support for `.txt` files directly in Markdown Explorer, allowing plain-text content to be viewed without enabling the document conversion feature.
 
 ### Changed
