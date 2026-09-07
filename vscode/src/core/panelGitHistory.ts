@@ -21,9 +21,12 @@ type ExecFileImpl = (
 type ReadFileImpl = (filePath: string, encoding: 'utf8') => Promise<string>;
 
 export class PanelGitHistoryError extends Error {
-  constructor(message: string, readonly reason = 'git-error', options?: ErrorOptions) {
-    super(message, options);
+  readonly originalError?: unknown;
+
+  constructor(message: string, readonly reason = 'git-error', originalError?: unknown) {
+    super(message);
     this.name = 'PanelGitHistoryError';
+    this.originalError = originalError;
   }
 }
 
@@ -89,8 +92,8 @@ export function createPanelGitHistoryAdapter({
     return new Promise((resolve, reject) => {
       execFileImpl('git', args, { cwd, windowsHide: true, maxBuffer: MAX_GIT_OUTPUT_BYTES, encoding: 'utf8' }, (error, stdout = '', stderr = '') => {
         if (!error) { resolve(stdout); return; }
-        if (error.code === 'ENOENT') { reject(new PanelGitHistoryError('Git executable is unavailable', 'git-unavailable', { cause: error })); return; }
-        reject(new PanelGitHistoryError((stderr || error.message || 'Git command failed').trim(), 'git-command-failed', { cause: error }));
+        if (error.code === 'ENOENT') { reject(new PanelGitHistoryError('Git executable is unavailable', 'git-unavailable', error)); return; }
+        reject(new PanelGitHistoryError((stderr || error.message || 'Git command failed').trim(), 'git-command-failed', error));
       });
     });
   }
