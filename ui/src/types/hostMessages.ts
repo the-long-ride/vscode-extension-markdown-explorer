@@ -2,6 +2,7 @@ import type { FolderNode, MdFile, RecentWorkspace } from './files';
 import type { DocumentRevisionToken, RenderContentMessage, WorkspaceOperationMetadata } from './content';
 import type { AppRuntime, HostPlatform, UpdateState, WorkspaceUnavailableReason } from './settings';
 import type { DesktopFontFamily } from '../desktop/fonts/fontModel';
+import type { GitCapability, GitRevisionSnapshot, GitRevisionSummary } from '../history/contracts';
 import type {
   ExternalLinkCheckResult,
   InsightsFsDelta,
@@ -191,6 +192,39 @@ export interface SaveDocumentResultMessage {
   readonly error?: string;
 }
 
+export interface GitCapabilityResultMessage {
+  readonly command: 'gitCapabilityResult';
+  readonly requestId: string;
+  readonly capability: GitCapability;
+}
+
+export interface DocumentHistoryResultMessage {
+  readonly command: 'documentHistoryResult';
+  readonly requestId: string;
+  readonly ok: boolean;
+  readonly revisions: readonly GitRevisionSummary[];
+  readonly reason?: string;
+}
+
+export interface GitRevisionResultMessage {
+  readonly command: 'gitRevisionResult';
+  readonly requestId: string;
+  readonly ok: boolean;
+  readonly snapshot?: GitRevisionSnapshot;
+  readonly reason?: string;
+}
+
+export interface GitComparisonResultMessage {
+  readonly command: 'gitComparisonResult';
+  readonly requestId: string;
+  readonly ok: boolean;
+  readonly leftSource?: string;
+  readonly rightSource?: string;
+  readonly leftLabel?: string;
+  readonly rightLabel?: string;
+  readonly reason?: string;
+}
+
 export interface InsightsScanBatchMessage extends InsightsScanBatch { readonly command: 'insightsScanBatch'; }
 export interface InsightsScanCompleteMessage extends InsightsScanComplete { readonly command: 'insightsScanComplete'; }
 export interface InsightsDocumentSourceResultMessage extends InsightsSourceResult { readonly command: 'insightsDocumentSourceResult'; }
@@ -232,6 +266,7 @@ export type HostMessage =
   | FullscreenStateChangedMessage | ExternalOpenRequestMessage | ExternalOpenPathMessage | CrossTabSearchResultsMessage
   | WorkspaceSearchResultsMessage | SearchPreviewResultMessage | WorkspaceSearchIndexLoadedMessage
   | WorkspaceTextResourceResultMessage | WorkspaceExportResourceResultMessage | SaveDocumentResultMessage
+  | GitCapabilityResultMessage | DocumentHistoryResultMessage | GitRevisionResultMessage | GitComparisonResultMessage
   | InsightsScanBatchMessage | InsightsScanCompleteMessage | InsightsDocumentSourceResultMessage
   | WorkspaceResourceProbeResultMessage | InsightsFsDeltaMessage | InsightsRuntimeCapabilitiesMessage
   | ExternalLinkCheckResultMessage | ExternalLinkCheckCompleteMessage

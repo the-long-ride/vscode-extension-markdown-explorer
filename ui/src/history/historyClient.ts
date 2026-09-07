@@ -39,9 +39,8 @@ export function createHistoryClient(
   const pending = new Map<string, PendingRequest>();
   let disposed = false;
 
-  const unsubscribe = bridge.onMessage((rawMessage: HostMessage) => {
-    const message = rawMessage as HostMessage & { readonly requestId?: string };
-    if (!message.requestId) return;
+  const unsubscribe = bridge.onMessage((message: HostMessage) => {
+    if (!('requestId' in message)) return;
     const request = pending.get(message.requestId);
     if (!request) return;
 
@@ -49,38 +48,38 @@ export function createHistoryClient(
       case 'capability':
         if (message.command !== 'gitCapabilityResult') return;
         pending.delete(message.requestId);
-        request.resolve((message as any).capability as GitCapability);
+        request.resolve(message.capability);
         return;
       case 'history':
         if (message.command !== 'documentHistoryResult') return;
         pending.delete(message.requestId);
-        if (!(message as any).ok) {
-          request.reject(failure((message as any).reason, 'Unable to read document history'));
+        if (!message.ok) {
+          request.reject(failure(message.reason, 'Unable to read document history'));
           return;
         }
-        request.resolve((message as any).revisions as readonly GitRevisionSummary[]);
+        request.resolve(message.revisions);
         return;
       case 'revision':
         if (message.command !== 'gitRevisionResult') return;
         pending.delete(message.requestId);
-        if (!(message as any).ok || !(message as any).snapshot) {
-          request.reject(failure((message as any).reason, 'Unable to read Git revision'));
+        if (!message.ok || !message.snapshot) {
+          request.reject(failure(message.reason, 'Unable to read Git revision'));
           return;
         }
-        request.resolve((message as any).snapshot as GitRevisionSnapshot);
+        request.resolve(message.snapshot);
         return;
       case 'comparison':
         if (message.command !== 'gitComparisonResult') return;
         pending.delete(message.requestId);
-        if (!(message as any).ok || typeof (message as any).leftSource !== 'string' || typeof (message as any).rightSource !== 'string') {
-          request.reject(failure((message as any).reason, 'Unable to compare Git revisions'));
+        if (!message.ok || typeof message.leftSource !== 'string' || typeof message.rightSource !== 'string') {
+          request.reject(failure(message.reason, 'Unable to compare Git revisions'));
           return;
         }
         request.resolve({
-          leftSource: (message as any).leftSource,
-          rightSource: (message as any).rightSource,
-          leftLabel: (message as any).leftLabel,
-          rightLabel: (message as any).rightLabel,
+          leftSource: message.leftSource,
+          rightSource: message.rightSource,
+          leftLabel: message.leftLabel,
+          rightLabel: message.rightLabel,
         } satisfies GitComparisonSources);
     }
   });
@@ -103,7 +102,7 @@ export function createHistoryClient(
       return request<GitCapability>('capability', (requestId) => ({
         command: 'getGitCapability',
         requestId,
-      } as WebviewMessage));
+      }));
     },
     listDocumentHistory(filePath, limit) {
       return request<readonly GitRevisionSummary[]>('history', (requestId) => ({
@@ -111,7 +110,7 @@ export function createHistoryClient(
         requestId,
         filePath,
         ...(limit === undefined ? {} : { limit }),
-      } as WebviewMessage));
+      }));
     },
     readGitRevision(oid, path) {
       return request<GitRevisionSnapshot>('revision', (requestId) => ({
@@ -119,7 +118,7 @@ export function createHistoryClient(
         requestId,
         oid,
         path,
-      } as WebviewMessage));
+      }));
     },
     compareGitRevisions(left, right) {
       return request<GitComparisonSources>('comparison', (requestId) => ({
@@ -127,7 +126,7 @@ export function createHistoryClient(
         requestId,
         left,
         right,
-      } as WebviewMessage));
+      }));
     },
     dispose() {
       if (disposed) return;
