@@ -14,6 +14,9 @@ import { createSplitViewState } from '../../../../ui/src/split-view/paneState';
 vi.mock('../../../../ui/src/contexts/AppStateContext');
 vi.mock('../../../../ui/src/contexts/NavigationContext');
 vi.mock('../../../../ui/src/contexts/PlatformContext');
+vi.mock('../../../../ui/src/contexts/HistoryContext', () => ({
+  useHistory: () => ({ historyViews: {}, clearHistoryView: vi.fn() }),
+}));
 vi.mock('../../../../ui/src/components/Content/useContentEffects', () => ({
   useContentEffects: vi.fn(),
 }));
