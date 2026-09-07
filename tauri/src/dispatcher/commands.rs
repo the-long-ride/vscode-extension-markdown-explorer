@@ -2,6 +2,8 @@ use super::*;
 
 #[path = "document_write.rs"]
 pub(super) mod document_write;
+#[path = "git_history.rs"]
+mod git_history;
 
 impl Dispatcher {
     pub async fn handle(self, msg: Value) -> Result<(), String> {
@@ -22,6 +24,9 @@ impl Dispatcher {
         }
         if cmd == "saveDocument" {
             self.handle_save_document(&msg);
+            return Ok(());
+        }
+        if git_history::handle_command(&self.app, &self.state, cmd, &msg)? {
             return Ok(());
         }
         if self.handle_workspace_command(cmd, &msg).await? {
