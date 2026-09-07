@@ -11,6 +11,8 @@ export const editorGitSplitCoverageManifest: Record<string, string[]> = {
   'ui/src/components/Content/InlineMarkdownEditor.tsx': ['tests/unit/ui/components/inline-markdown-editor.test.tsx'],
   'ui/src/components/Content/useInlineMarkdownEditing.ts': ['tests/unit/ui/components/use-inline-markdown-editing.test.tsx'],
   'ui/src/components/Content/DocumentSurface.tsx': ['tests/unit/ui/components/document-surface.test.tsx'],
+  'ui/src/components/Content/SplitDivider.tsx': ['tests/unit/ui/split-view/split-shell.test.tsx'],
+  'ui/src/components/Content/SplitDocumentView.tsx': ['tests/unit/ui/split-view/split-shell.test.tsx'],
   'ui/src/components/Modal/UnsavedChangesModal.tsx': ['tests/unit/ui/editor/unsaved-guards.test.tsx'],
   'ui/src/components/Modal/DocumentConflictModal.tsx': ['tests/unit/ui/editor/conflict-modal.test.tsx'],
   'ui/src/split-view/paneState.ts': ['tests/unit/ui/split-view/pane-state.test.ts'],
