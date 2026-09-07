@@ -11,6 +11,7 @@ export const editorGitSplitCoverageManifest: Record<string, string[]> = {
   'ui/src/history/lineDiff.ts': ['tests/unit/ui/history/line-diff.test.ts'],
   'ui/src/history/diffRanges.ts': ['tests/unit/ui/history/diff-ranges.test.ts'],
   'ui/src/contexts/HistoryContext.tsx': ['tests/unit/ui/history/document-history-panel.test.tsx'],
+  'ui/src/contexts/historyTranslations.ts': ['tests/unit/ui/contexts/history-translations.test.ts'],
   'ui/src/contexts/editorUiTranslations.ts': ['tests/unit/ui/contexts/editor-ui-translations.test.ts'],
   'ui/src/contexts/splitViewTranslations.ts': ['tests/unit/ui/contexts/split-view-translations.test.ts'],
   'ui/src/components/History/DocumentHistoryPanel.tsx': ['tests/unit/ui/history/document-history-panel.test.tsx'],
