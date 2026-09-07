@@ -135,6 +135,20 @@ export function markSaveConflict(
   };
 }
 
+export function resolveConflictWithDisk(session: EditableDocumentSession): EditableDocumentSession {
+  if (!session.conflict) return session;
+  return {
+    ...session,
+    source: session.conflict.diskSource,
+    persistedSource: session.conflict.diskSource,
+    lineEnding: session.conflict.diskLineEnding,
+    revision: session.conflict.diskRevision,
+    saveState: 'idle',
+    pendingSaveSource: null,
+    conflict: null,
+  };
+}
+
 export function markSaveFailed(session: EditableDocumentSession): EditableDocumentSession {
   return {
     ...session,
