@@ -55,6 +55,12 @@ async function triggerConflict(filePath: string) {
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
 }
 
+function countSaveRequests(bridge: PlatformBridge): number {
+  return (bridge.postMessage as ReturnType<typeof vi.fn>).mock.calls
+    .filter(([message]) => (message as WebviewMessage).command === 'saveDocument')
+    .length;
+}
+
 describe('live document conflict resolution', () => {
   it('reloads the disk version into source and persisted state', async () => {
     const { filePath } = renderConflictProvider();
@@ -86,6 +92,7 @@ describe('live document conflict resolution', () => {
   it('emits a local compare request without saving', async () => {
     const { bridge, filePath } = renderConflictProvider();
     await triggerConflict(filePath);
+    const saveCountBeforeCompare = countSaveRequests(bridge);
     const compare = vi.fn();
     window.addEventListener('markdown-explorer-document-compare-request', compare);
 
@@ -94,7 +101,7 @@ describe('live document conflict resolution', () => {
     expect(compare).toHaveBeenCalledTimes(1);
     const detail = (compare.mock.calls[0][0] as CustomEvent).detail;
     expect(detail).toMatchObject({ filePath, leftSource: '# Disk', rightSource: '# Mine' });
-    expect(bridge.postMessage).toHaveBeenCalledTimes(2); // ready + initial save only
+    expect(countSaveRequests(bridge)).toBe(saveCountBeforeCompare);
     window.removeEventListener('markdown-explorer-document-compare-request', compare);
   });
 });
