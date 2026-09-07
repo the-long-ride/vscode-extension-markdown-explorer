@@ -249,7 +249,7 @@ export const Content = memo(function Content({
 
   return (
     <>
-      {state.splitView.enabled ? (
+      {state.splitView?.enabled ? (
         <SplitContent />
       ) : (
         <ContentMainView
