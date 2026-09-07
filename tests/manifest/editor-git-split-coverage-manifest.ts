@@ -15,6 +15,7 @@ export const editorGitSplitCoverageManifest: Record<string, string[]> = {
   'ui/src/components/Content/SplitDocumentView.tsx': ['tests/unit/ui/split-view/split-shell.test.tsx'],
   'ui/src/components/Modal/UnsavedChangesModal.tsx': ['tests/unit/ui/editor/unsaved-guards.test.tsx'],
   'ui/src/components/Modal/DocumentConflictModal.tsx': ['tests/unit/ui/editor/conflict-modal.test.tsx'],
+  'ui/src/split-view/paneSelectors.ts': ['tests/unit/ui/split-view/pane-selectors.test.ts'],
   'ui/src/split-view/paneState.ts': ['tests/unit/ui/split-view/pane-state.test.ts'],
   'ui/src/split-view/splitViewReducer.ts': ['tests/unit/ui/split-view/split-reducer.test.ts'],
   'electron/workspace/document-write.js': ['tests/unit/electron/document-write.test.ts'],
