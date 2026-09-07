@@ -103,12 +103,8 @@ export function Topbar({
   const activeDocumentSession = state.currentFile
     ? state.documentSessions?.[documentSessionKey(state.currentFile)]
     : undefined;
-  const activeContentTab = state.currentFile
-    ? state.contentTabs?.find((tab) => tab.filePath === state.currentFile)
-    : undefined;
   const canSaveMarkdown = Boolean(
     activeDocumentSession
-      && activeContentTab?.documentWrite?.supported
       && activeDocumentSession.saveState !== 'saving'
       && isDocumentDirty(activeDocumentSession),
   );

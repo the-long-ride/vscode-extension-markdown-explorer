@@ -56,8 +56,7 @@ describe('global Save current document shortcut', () => {
     state = {
       appRuntime: 'web',
       currentFile: filePath,
-      currentDocumentWrite: { supported: true, revision: '1:3' },
-      activeContentTabPath: filePath,
+      activeContentTabPath: null,
       documentSessions: { [documentSessionKey(filePath)]: session },
       contentTabs: [],
       settings: { keybindings: { saveCurrentDocument: 'Ctrl+S' }, disabledKeybindings: {} },
@@ -70,8 +69,7 @@ describe('global Save current document shortcut', () => {
     expect(saveDocument).toHaveBeenCalledWith(filePath);
   });
 
-  it('allows Save to request browser write permission', () => {
-    state.currentDocumentWrite = { supported: false, revision: '1:3', reason: 'permission-required' };
+  it('allows Save for a permission-gated editable session', () => {
     renderHook(() => useKeyboard(props));
     fireSave();
     expect(saveDocument).toHaveBeenCalledWith(filePath);
@@ -84,8 +82,8 @@ describe('global Save current document shortcut', () => {
     expect(saveDocument).not.toHaveBeenCalled();
   });
 
-  it('does not save when the host marks the document read-only', () => {
-    state.currentDocumentWrite = { supported: false, revision: '1:3', reason: 'read-only-runtime' };
+  it('does not save when no editable session exists', () => {
+    state.documentSessions = {};
     renderHook(() => useKeyboard(props));
     fireSave();
     expect(saveDocument).not.toHaveBeenCalled();

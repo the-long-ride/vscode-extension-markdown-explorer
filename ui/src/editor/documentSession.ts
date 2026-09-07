@@ -66,7 +66,7 @@ export function isDocumentDirty(session: EditableDocumentSession): boolean {
 
 export function isDocumentSavable(
   session: EditableDocumentSession | undefined,
-  writeSupported: boolean | undefined,
+  writeSupported: boolean | undefined = true,
 ): boolean {
   return Boolean(session && writeSupported && session.saveState !== 'saving' && isDocumentDirty(session));
 }

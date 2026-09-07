@@ -6,18 +6,20 @@ const DB_NAME = 'markdown-explorer-db';
 const STORE_NAME = 'workspaces';
 
 export type FileWriteResult =
-  | { ok: true; revision: string }
+  | { ok: true; revision: string; reason?: never }
   | {
       ok: false;
-      reason: 'permission-denied' | 'missing' | 'outside-workspace' | 'conflict' | 'write-failed';
+      reason: 'permission-denied' | 'missing' | 'outside-workspace' | 'conflict' | 'write-failed' | 'io-error';
       diskSource?: string;
       diskRevision?: string;
       error?: string;
     };
 
+export type BrowserDocumentWriteResult = FileWriteResult;
+
 export type BrowserDocumentWriteCapability =
   | { supported: true; revision: string }
-  | { supported: false; revision: null; reason: 'permission-required' | 'unsupported-document' | 'read-only-runtime' };
+  | { supported: false; revision: string | null; reason: 'permission-required' | 'unsupported-document' | 'read-only-runtime' };
 
 function getDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -157,7 +159,7 @@ async function writeResolvedFileHandle(
   try {
     const file = await handle.getFile();
     const currentRevision = `${file.lastModified}:${file.size}`;
-    if (!force && expectedRevision !== null && currentRevision !== expectedRevision) {
+    if (!force && (expectedRevision === null || currentRevision !== expectedRevision)) {
       return {
         ok: false,
         reason: 'conflict',
@@ -212,11 +214,12 @@ export async function documentWriteCapability(
       ? await resolveFileHandle(handle as FileSystemDirectoryHandle, relativePath)
       : handle as FileSystemFileHandle;
     if (!fileHandle) return { supported: false, revision: null, reason: 'read-only-runtime' };
+    const revision = await documentRevision(fileHandle);
     const permission = await (fileHandle as any).queryPermission({ mode: 'readwrite' });
     if (permission !== 'granted') {
-      return { supported: false, revision: null, reason: 'permission-required' };
+      return { supported: false, revision, reason: 'permission-required' };
     }
-    return { supported: true, revision: await documentRevision(fileHandle) };
+    return { supported: true, revision };
   } catch {
     return { supported: false, revision: null, reason: 'read-only-runtime' };
   }

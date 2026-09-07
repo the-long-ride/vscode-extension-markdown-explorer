@@ -111,8 +111,7 @@ export function useKeyboard({
     [state.settings.disabledKeybindings, state.settings.keybindings],
   );
   const activeDocumentSession = state.currentFile ? state.documentSessions?.[documentSessionKey(state.currentFile)] : undefined;
-  const activeContentTab = state.currentFile ? state.contentTabs?.find((tab) => tab.filePath === state.currentFile) : undefined;
-  const hasSavableDocument = isDocumentSavable(activeDocumentSession, activeContentTab?.documentWrite?.supported);
+  const hasSavableDocument = isDocumentSavable(activeDocumentSession);
 
   useEffect(() => {
     const routeBack = () => {
@@ -131,15 +130,11 @@ export function useKeyboard({
         return;
       }
 
-      // Logitech and many drivers emit BrowserBack/BrowserForward or Alt+Left/Right
-      // as universal browser navigation keys. Handle them independently of the
-      // configured shortcut so Logi mice always work.
       const isBrowserBackFallback = e.key === 'BrowserBack'
         || (e.altKey && e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey && !e.shiftKey);
       const isBrowserForwardFallback = e.key === 'BrowserForward'
         || (e.altKey && e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey && !e.shiftKey);
 
-      // When terms screen is open history navigation is muted (mirrors mouse handler).
       if (!isTermsOpen) {
         if (getScopeNavigationStateSnapshot().active) {
           if (isBrowserBackFallback) {
@@ -155,8 +150,6 @@ export function useKeyboard({
         }
       }
 
-      // Scope View is itself a modal, so its configured history shortcuts must
-      // be routed before the normal modal shortcut gate suppresses globals.
       if (getScopeNavigationStateSnapshot().active) {
         if (matchesShortcut(e, keybindings.back)) {
           e.preventDefault();
@@ -170,7 +163,6 @@ export function useKeyboard({
         }
       }
 
-      // Universal fallback for non-scope navigation (scope-aware via routeBack/routeForward).
       if (!isTermsOpen) {
         if (isBrowserBackFallback) {
           e.preventDefault();
@@ -348,8 +340,6 @@ export function useKeyboard({
       }
     };
 
-    // Mouse Back/Forward arrive under different event names depending on the
-    // device, driver and webview; one helper covers every variant.
     const detachMouseHistory = attachMouseHistoryNavigation((direction) => {
       if (isTermsOpen) return;
       if (direction === 'back') routeBack();
