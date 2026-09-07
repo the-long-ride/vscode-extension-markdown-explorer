@@ -22,6 +22,7 @@ export const editorGitSplitCoverageManifest: Record<string, string[]> = {
   'ui/src/split-view/paneSelectors.ts': ['tests/unit/ui/split-view/pane-selectors.test.ts'],
   'ui/src/split-view/paneState.ts': ['tests/unit/ui/split-view/pane-state.test.ts'],
   'ui/src/split-view/splitViewReducer.ts': ['tests/unit/ui/split-view/split-reducer.test.ts'],
+  'electron/git/document-history.js': ['tests/unit/electron/document-history.test.ts'],
   'electron/workspace/document-write.js': ['tests/unit/electron/document-write.test.ts'],
   'vscode/src/core/panelDocumentWrite.ts': ['tests/unit/vscode/panel-document-write.test.ts'],
 };
