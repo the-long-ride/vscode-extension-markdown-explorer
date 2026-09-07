@@ -5,6 +5,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { getTranslations } from '../../contexts/translations';
 import { usePlatform } from '../../contexts/PlatformContext';
 import { documentSessionKey, isDocumentDirty } from '../../editor/documentSession';
+import { collectDirtyDocumentPaths } from '../../editor/unsavedGuards';
 import { getEnabledShortcut } from '../../utils/shortcuts';
 import { TooltipButton } from '../shared/TooltipButton';
 import { EditIcon } from '../shared/icons';
@@ -81,6 +82,7 @@ export function Topbar({
   const {
     state, navigate, openInEditor, refresh, toggleTheme, toggleSidebar, toggleToc,
     toggleFocusMode, dispatch, setDocumentEditMode, saveDocument,
+    guardUnsavedChanges = (_filePaths: string[], commit: () => void) => commit(),
   } = useAppState();
   const { back, forward, canGoBack, canGoForward } = useNavigation();
   const bridge = usePlatform();
@@ -110,6 +112,8 @@ export function Topbar({
       && activeDocumentSession.saveState !== 'saving'
       && isDocumentDirty(activeDocumentSession),
   );
+  const dirtyDocumentPaths = collectDirtyDocumentPaths(state.documentSessions ?? {});
+  const guardDestructiveAction = (commit: () => void) => guardUnsavedChanges(dirtyDocumentPaths, commit);
 
   return (
     <header className="topbar">
@@ -126,13 +130,13 @@ export function Topbar({
           <span className="topbar__crumb-separator" aria-hidden="true">|</span>
           <TooltipButton
             className="btn btn--icon"
-            onClick={() => {
+            onClick={() => guardDestructiveAction(() => {
               dispatch({
                 type: 'READY_ACK', fileList: [], tree: null, theme: state.theme, themeStyle: state.themeStyle,
                 defaultExpanded: state.defaultExpanded, workspaceName: '', recentWorkspaces: state.recentWorkspaces,
               });
               bridge.postMessage({ command: 'closeWorkspace' });
-            }}
+            })}
             tooltip={t.topbar.closeFolder}
             icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>}
           />
@@ -271,7 +275,7 @@ export function Topbar({
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
                 )}
               />
-              <TooltipButton className="btn btn--icon window-control-btn window-control-btn--close" onClick={() => bridge.postMessage({ command: 'window-close' })} tooltip={t.tooltips.closeApp} tooltipAlign="right" icon={<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>} />
+              <TooltipButton className="btn btn--icon window-control-btn window-control-btn--close" onClick={() => guardDestructiveAction(() => bridge.postMessage({ command: 'window-close' }))} tooltip={t.tooltips.closeApp} tooltipAlign="right" icon={<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>} />
             </div>
           </>
         )}
