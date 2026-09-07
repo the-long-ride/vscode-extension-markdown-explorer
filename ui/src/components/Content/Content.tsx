@@ -19,6 +19,7 @@ import { renderMarkdownClientSide } from "../../contexts/contentTabState";
 import { documentSessionKey } from "../../editor/documentSession";
 import { hasHtmlLocalFirstPolicyNotice, type HtmlLocalFirstPolicyReport } from "../../markdown/htmlLocalFirstPreview";
 import { ContentMainView } from "./ContentMainView";
+import { SplitContent } from "./SplitContent";
 import { BookmarkSelectionMenu } from "../Bookmarks/BookmarkSelectionMenu";
 import { useBookmarkSelection } from "./useBookmarkSelection";
 import { ACTION_NOTICE_EVENT, normalizeActionNoticeDetail, type ActionNoticeDetail, type ActionNoticeTone } from "../../utils/actionNotice.ts";
@@ -248,20 +249,24 @@ export const Content = memo(function Content({
 
   return (
     <>
-      <ContentMainView
-        state={state} translations={t} scrollRef={scrollRef} bodyRef={bodyRef}
-        isFullHtmlPreview={isFullHtmlPreview} workspaceUnavailablePath={workspaceUnavailablePath}
-        isDesktopTabView={isDesktopTabView} isUnavailableWorkspaceInHistory={isUnavailableWorkspaceInHistory}
-        suppressWelcome={suppressWelcome} hasRenderableDocumentContent={hasRenderableDocumentContent}
-        isHtmlDocument={isHtmlDocument} sourceDocumentText={sourceDocumentText}
-        htmlMarkdownRender={htmlMarkdownRender} htmlDocumentPreviewEnabled={htmlDocumentPreviewEnabled}
-        previewTitle={previewTitle} previewWarning={previewWarning} previewMeta={previewMeta}
-        frontmatterEntries={fmEntries} renderedContentParts={renderedContentParts}
-        onCancelWorkspaceScan={onCancelWorkspaceScan} onOpenWorkspaceAgain={handleOpenWorkspaceAgain}
-        onDeleteUnavailableWorkspace={handleDeleteUnavailableWorkspace} onUpdateSettings={updateSettings}
-        onRefresh={refresh} onHtmlPolicyReport={handleHtmlPolicyReport}
-        onWorkingDocumentSourceChange={setWorkingDocumentSource} onSaveDocument={saveDocument}
-      />
+      {state.splitView.enabled ? (
+        <SplitContent />
+      ) : (
+        <ContentMainView
+          state={state} translations={t} scrollRef={scrollRef} bodyRef={bodyRef}
+          isFullHtmlPreview={isFullHtmlPreview} workspaceUnavailablePath={workspaceUnavailablePath}
+          isDesktopTabView={isDesktopTabView} isUnavailableWorkspaceInHistory={isUnavailableWorkspaceInHistory}
+          suppressWelcome={suppressWelcome} hasRenderableDocumentContent={hasRenderableDocumentContent}
+          isHtmlDocument={isHtmlDocument} sourceDocumentText={sourceDocumentText}
+          htmlMarkdownRender={htmlMarkdownRender} htmlDocumentPreviewEnabled={htmlDocumentPreviewEnabled}
+          previewTitle={previewTitle} previewWarning={previewWarning} previewMeta={previewMeta}
+          frontmatterEntries={fmEntries} renderedContentParts={renderedContentParts}
+          onCancelWorkspaceScan={onCancelWorkspaceScan} onOpenWorkspaceAgain={handleOpenWorkspaceAgain}
+          onDeleteUnavailableWorkspace={handleDeleteUnavailableWorkspace} onUpdateSettings={updateSettings}
+          onRefresh={refresh} onHtmlPolicyReport={handleHtmlPolicyReport}
+          onWorkingDocumentSourceChange={setWorkingDocumentSource} onSaveDocument={saveDocument}
+        />
+      )}
       {htmlModal && <HtmlPreviewModal documentHtml={htmlModal.documentHtml} title={t.previewActions.modalTitle} closeLabel={t.previewActions.closeModal} trigger={htmlModal.trigger} onClose={() => setHtmlModal(null)} />}
       <ScopeViewModal initialFile={scopeFile} files={state.fileList} onMediaClick={onImageClick} onClose={() => setScopeFile(null)} />
       <BookmarkSelectionMenu state={bookmarkSelection} workspaceName={state.workspaceName} workspacePath={state.workspacePath} filePath={state.currentFile} translations={t.bookmarks} onClose={closeBookmarkSelection} />
