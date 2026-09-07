@@ -17,6 +17,25 @@ describe('SplitDivider', () => {
     fireEvent.keyDown(divider, { key: 'End' });
     expect(onRatioChange).toHaveBeenCalledWith(0.75);
   });
+
+  it('resizes from pointer movement inside the split container', () => {
+    const onRatioChange = vi.fn();
+    render(
+      <div data-testid="split-root">
+        <SplitDivider ratio={0.5} onRatioChange={onRatioChange} />
+      </div>,
+    );
+    const root = screen.getByTestId('split-root');
+    vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+      x: 100, y: 0, left: 100, top: 0, right: 1100, bottom: 500,
+      width: 1000, height: 500, toJSON: () => ({}),
+    });
+    const divider = screen.getByRole('separator', { name: /resize document panes/i });
+    fireEvent.pointerDown(divider, { pointerId: 7, clientX: 600 });
+    fireEvent.pointerMove(window, { pointerId: 7, clientX: 700 });
+    expect(onRatioChange).toHaveBeenCalledWith(0.6);
+    fireEvent.pointerUp(window, { pointerId: 7, clientX: 700 });
+  });
 });
 
 describe('SplitDocumentView', () => {
