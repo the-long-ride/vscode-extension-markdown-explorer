@@ -3,7 +3,7 @@ import { useAppState } from '../../contexts/AppStateContext';
 import type { AppState } from '../../contexts/appStateModel';
 import { getEditorUiTranslations } from '../../contexts/editorUiTranslations';
 import { getHistoryTranslations } from '../../contexts/historyTranslations';
-import { useHistory } from '../../contexts/HistoryContext';
+import { useHistoryView } from '../../contexts/HistoryContext';
 import { getSplitViewTranslations } from '../../contexts/splitViewTranslations';
 import { selectPaneDocument, type PaneDocumentProjection } from '../../split-view/paneSelectors';
 import type { DocumentViewMode, PaneId } from '../../split-view/paneState';
@@ -26,7 +26,7 @@ const EDITABLE_MODES = ['rendered', 'inline-edit', 'plain'] as const satisfies r
 
 function SplitPaneView({ paneId, projection, language, renderVersion, onModeChange, onSourceChange, onSave, onScrollChange }: PaneViewProps): ReactNode {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { historyViews, clearHistoryView } = useHistory();
+  const { historyViews, clearHistoryView } = useHistoryView();
   const editorT = getEditorUiTranslations(language);
   const historyT = getHistoryTranslations(language);
   const splitT = getSplitViewTranslations(language);
