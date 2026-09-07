@@ -1,7 +1,7 @@
 import { lazy, memo, Suspense } from 'react';
 import type { AppState } from '../../contexts/appStateModel';
 import { getEditorUiTranslations } from '../../contexts/editorUiTranslations';
-import { useHistory } from '../../contexts/HistoryContext';
+import { useHistoryView } from '../../contexts/HistoryContext';
 import type { Translations } from '../../contexts/translations';
 import { documentSessionKey } from '../../editor/documentSession';
 import type { HtmlLocalFirstPolicyReport } from '../../markdown/htmlLocalFirstPreview';
@@ -38,7 +38,7 @@ export function ContentMainView(props: ContentMainViewProps) {
     onCancelWorkspaceScan, onOpenWorkspaceAgain, onDeleteUnavailableWorkspace, onUpdateSettings, onRefresh, onHtmlPolicyReport,
     onWorkingDocumentSourceChange, onSaveDocument,
   } = props;
-  const { historyViews, clearHistoryView } = useHistory();
+  const { historyViews, clearHistoryView } = useHistoryView();
   const activeHistory = historyViews.single?.filePath === state.currentFile ? historyViews.single : undefined;
   const previewInfo = state.previewInfo;
   const previewCopy = t.documentPreview;
