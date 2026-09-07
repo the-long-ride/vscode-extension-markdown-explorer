@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { DocumentHistoryPanel } from '../components/History/DocumentHistoryPanel';
+import { DOCUMENT_HISTORY_OPEN_EVENT } from '../components/shared/ToolbarActionMenu';
 import { documentSessionKey } from '../editor/documentSession';
 import type { GitComparisonSources, GitRevisionSnapshot, GitRevisionSummary } from '../history/contracts';
 import { createHistoryClient, type HistoryClient } from '../history/historyClient';
@@ -59,6 +60,12 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
     if (target) setPanelFilePath(target);
   }, [activeFilePath]);
 
+  useEffect(() => {
+    const handleOpen = () => openHistory();
+    window.addEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
+    return () => window.removeEventListener(DOCUMENT_HISTORY_OPEN_EVENT, handleOpen);
+  }, [openHistory]);
+
   const closeHistory = useCallback(() => setPanelFilePath(null), []);
 
   const viewRevision = useCallback(async (revision: GitRevisionSummary) => {
@@ -69,24 +76,11 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
     setPanelFilePath(null);
   }, [activeFilePath, client, panelFilePath, setView]);
 
-  const compareRevisionToSource = useCallback(async (
-    revision: GitRevisionSummary,
-    source: string,
-    rightLabel: string,
-  ) => {
+  const compareRevisionToSource = useCallback(async (revision: GitRevisionSummary, source: string, rightLabel: string) => {
     const filePath = panelFilePath ?? activeFilePath();
     if (!filePath) return;
     const snapshot = await client.readGitRevision(revision.oid, revision.path);
-    setView({
-      filePath,
-      mode: 'diff',
-      comparison: {
-        leftSource: snapshot.source,
-        rightSource: source,
-        leftLabel: `${revision.shortOid}:${revision.path}`,
-        rightLabel,
-      },
-    });
+    setView({ filePath, mode: 'diff', comparison: { leftSource: snapshot.source, rightSource: source, leftLabel: `${revision.shortOid}:${revision.path}`, rightLabel } });
     setPanelFilePath(null);
   }, [activeFilePath, client, panelFilePath, setView]);
 
@@ -94,16 +88,14 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
     const filePath = panelFilePath ?? activeFilePath();
     if (!filePath) return;
     const session = state.documentSessions[documentSessionKey(filePath)];
-    const source = session?.persistedSource ?? state.markdownSource ?? '';
-    await compareRevisionToSource(revision, source, 'Current');
+    await compareRevisionToSource(revision, session?.persistedSource ?? state.markdownSource ?? '', 'Current');
   }, [activeFilePath, compareRevisionToSource, panelFilePath, state.documentSessions, state.markdownSource]);
 
   const compareWithWorkingCopy = useCallback(async (revision: GitRevisionSummary) => {
     const filePath = panelFilePath ?? activeFilePath();
     if (!filePath) return;
     const session = state.documentSessions[documentSessionKey(filePath)];
-    const source = session?.source ?? state.markdownSource ?? '';
-    await compareRevisionToSource(revision, source, 'Working copy');
+    await compareRevisionToSource(revision, session?.source ?? state.markdownSource ?? '', 'Working copy');
   }, [activeFilePath, compareRevisionToSource, panelFilePath, state.documentSessions, state.markdownSource]);
 
   const compareSelected = useCallback(async (left: GitRevisionSummary, right: GitRevisionSummary) => {
@@ -128,15 +120,8 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
   }, [activeTarget, setSplitPaneMode]);
 
   const value = useMemo<HistoryContextValue>(() => ({
-    client,
-    historyViews,
-    openHistory,
-    closeHistory,
-    viewRevision,
-    compareWithCurrent,
-    compareWithWorkingCopy,
-    compareSelected,
-    clearHistoryView,
+    client, historyViews, openHistory, closeHistory, viewRevision, compareWithCurrent,
+    compareWithWorkingCopy, compareSelected, clearHistoryView,
   }), [client, historyViews, openHistory, closeHistory, viewRevision, compareWithCurrent, compareWithWorkingCopy, compareSelected, clearHistoryView]);
 
   return (
