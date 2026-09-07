@@ -29,6 +29,7 @@ export function DocumentHistoryPanel({
   const [selected, setSelected] = useState<readonly string[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
   const selectedRevisions = useMemo(
     () => selected.map((oid) => revisions.find((revision) => revision.oid === oid)).filter((revision): revision is GitRevisionSummary => Boolean(revision)),
     [revisions, selected],
@@ -41,13 +42,22 @@ export function DocumentHistoryPanel({
     return t.historyUnavailable;
   };
   const load = async () => {
-    setStatus('loading'); setMessage('');
+    setStatus('loading'); setMessage(''); setActionMessage('');
     try {
       const capability = await client.getCapability();
       if (!capability.supported) { setStatus('error'); setMessage(capabilityMessage(capability.reason)); return; }
       setRevisions(await client.listDocumentHistory(filePath)); setStatus('ready');
     } catch (error) {
       setStatus('error'); setMessage(error instanceof Error ? error.message : String(error));
+    }
+  };
+  const runAction = async (action: () => void | Promise<void>) => {
+    setActionMessage('');
+    try {
+      await action();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      setActionMessage(detail || t.historyUnavailable);
     }
   };
   const toggleSelected = (oid: string) => setSelected((current) => current.includes(oid)
@@ -64,10 +74,11 @@ export function DocumentHistoryPanel({
         {status === 'idle' && <button type="button" className="btn document-history-panel__load" onClick={() => { void load(); }}>{t.loadHistory}</button>}
         {status === 'loading' && <div role="status">{t.loadingHistory}</div>}
         {status === 'error' && <div className="document-history-panel__error" role="status"><p>{message}</p><button type="button" className="btn" onClick={() => { void load(); }}>{t.retry}</button></div>}
+        {status === 'ready' && actionMessage && <div className="document-history-panel__error" role="status">{actionMessage}</div>}
         {status === 'ready' && revisions.length === 0 && <div role="status">{t.noHistory}</div>}
         {status === 'ready' && revisions.length > 0 && (
           <>
-            {onCompareSelected && <div className="document-history-panel__selection-actions"><button type="button" className="btn" disabled={selectedRevisions.length !== 2} onClick={() => { if (selectedRevisions.length === 2) void onCompareSelected(selectedRevisions[0], selectedRevisions[1]); }}>{t.compareSelected}</button></div>}
+            {onCompareSelected && <div className="document-history-panel__selection-actions"><button type="button" className="btn" disabled={selectedRevisions.length !== 2} onClick={() => { if (selectedRevisions.length === 2) void runAction(() => onCompareSelected(selectedRevisions[0], selectedRevisions[1])); }}>{t.compareSelected}</button></div>}
             <ol className="document-history-panel__list">
               {revisions.map((revision) => (
                 <li key={revision.oid} className="document-history-panel__revision">
@@ -80,9 +91,9 @@ export function DocumentHistoryPanel({
                     </div>
                   </div>
                   <div className="document-history-panel__actions">
-                    <button type="button" className="btn" onClick={() => { void onViewRevision(revision); }}>{t.viewRevision}</button>
-                    {onCompareCurrent && <button type="button" className="btn" onClick={() => { void onCompareCurrent(revision); }}>{t.compareCurrent}</button>}
-                    {onCompareWorkingCopy && <button type="button" className="btn" onClick={() => { void onCompareWorkingCopy(revision); }}>{t.workingCopy}</button>}
+                    <button type="button" className="btn" onClick={() => { void runAction(() => onViewRevision(revision)); }}>{t.viewRevision}</button>
+                    {onCompareCurrent && <button type="button" className="btn" onClick={() => { void runAction(() => onCompareCurrent(revision)); }}>{t.compareCurrent}</button>}
+                    {onCompareWorkingCopy && <button type="button" className="btn" onClick={() => { void runAction(() => onCompareWorkingCopy(revision)); }}>{t.workingCopy}</button>}
                   </div>
                 </li>
               ))}
