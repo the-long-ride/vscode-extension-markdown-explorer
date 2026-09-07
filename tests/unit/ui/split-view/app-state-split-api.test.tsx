@@ -26,6 +26,27 @@ function wrapperFor(bridge: PlatformBridge) {
   };
 }
 
+function renderDocument(result: ReturnType<typeof renderHook<ReturnType<typeof useAppState>, unknown>>['result']) {
+  act(() => {
+    result.current.dispatch({
+      type: 'RENDER_CONTENT',
+      msg: {
+        command: 'renderContent',
+        html: '<h1>A</h1>',
+        markdownSource: '# A',
+        frontmatter: {},
+        toc: [],
+        filePath: '/docs/a.md',
+        relativePath: 'a.md',
+        title: 'A',
+        fileList: [],
+        previewInfo: null,
+        documentWrite: { supported: true, revision: '1:3' },
+      },
+    });
+  });
+}
+
 type SplitApi = {
   openInSplit?: (filePath: string) => void;
   moveToOtherPane?: (filePath: string) => void;
@@ -41,25 +62,7 @@ describe('AppStateProvider split API', () => {
   it('opens, updates, swaps, and closes a split through public actions', () => {
     const bridge = createBridge();
     const { result } = renderHook(() => useAppState(), { wrapper: wrapperFor(bridge) });
-
-    act(() => {
-      result.current.dispatch({
-        type: 'RENDER_CONTENT',
-        msg: {
-          command: 'renderContent',
-          html: '<h1>A</h1>',
-          markdownSource: '# A',
-          frontmatter: {},
-          toc: [],
-          filePath: '/docs/a.md',
-          relativePath: 'a.md',
-          title: 'A',
-          fileList: [],
-          previewInfo: null,
-          documentWrite: { supported: true, revision: '1:3' },
-        },
-      });
-    });
+    renderDocument(result as any);
 
     const api = result.current as typeof result.current & SplitApi;
     expect(api.openInSplit).toBeTypeOf('function');
@@ -100,13 +103,13 @@ describe('AppStateProvider split API', () => {
   it('moves a document to the pane opposite the active pane', () => {
     const bridge = createBridge();
     const { result } = renderHook(() => useAppState(), { wrapper: wrapperFor(bridge) });
+    renderDocument(result as any);
     const api = result.current as typeof result.current & SplitApi;
     expect(api.openInSplit).toBeTypeOf('function');
     expect(api.moveToOtherPane).toBeTypeOf('function');
     expect(api.activatePane).toBeTypeOf('function');
     if (!api.openInSplit || !api.moveToOtherPane || !api.activatePane) return;
 
-    act(() => result.current.dispatch({ type: 'SET_SPLIT_PANE_FILE', paneId: 'primary', filePath: '/docs/a.md' } as any));
     act(() => api.openInSplit?.('/docs/b.md'));
     act(() => api.activatePane?.('primary'));
     act(() => api.moveToOtherPane?.('/docs/c.md'));
