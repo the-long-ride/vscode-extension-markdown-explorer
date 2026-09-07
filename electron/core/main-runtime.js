@@ -1,6 +1,4 @@
-const ZOOM_LEVEL_MIN = -2.5;
-const ZOOM_LEVEL_MAX = 2;
-const ZOOM_LEVEL_STEP = 0.2;
+const ZOOM_LEVEL_MIN = -2.5, ZOOM_LEVEL_MAX = 2, ZOOM_LEVEL_STEP = 0.2;
 const { registerRuntimeCommandHandlers } = require("./runtime-command-handlers");
 const { registerRuntimeWorkspaceHandlers } = require("./runtime-workspace-handlers");
 const { documentWriteCapabilityFor, saveWorkspaceDocument } = require("../workspace/document-write");
