@@ -21,6 +21,7 @@ import type {
 import { requestSaveDocument, type SaveDocumentRequestOptions } from '../editor/saveDocument';
 import { documentSessionKey, type MarkdownEditMode } from '../editor/documentSession';
 import { useUnsavedChangesGuard } from '../editor/useUnsavedChangesGuard';
+import { useDocumentConflictResolution } from '../editor/useDocumentConflictResolution';
 import { useAppStateEffects } from './useAppStateEffects';
 import {
   type AppState,
@@ -201,6 +202,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     saveDocument,
     discardDocumentChanges,
   });
+  const { conflictModal } = useDocumentConflictResolution({
+    sessions: state.documentSessions,
+    dispatch,
+    saveDocument,
+  });
 
   const openInEditor = useCallback(() => {
     if (state.currentFile) bridge.postMessage({ command: 'openInEditor', path: state.currentFile });
@@ -281,6 +287,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     <AppStateContext.Provider value={value}>
       {children}
       {unsavedChangesModal}
+      {conflictModal}
     </AppStateContext.Provider>
   );
 }
