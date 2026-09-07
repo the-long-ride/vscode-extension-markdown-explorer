@@ -218,11 +218,69 @@ async function compareGitSources({ workspacePath, left, right } = {}) {
   };
 }
 
+function requestIdOf(message) {
+  return typeof message?.requestId === 'string' ? message.requestId : '';
+}
+
+function failureReason(error) {
+  return error instanceof GitHistoryError
+    ? error.reason
+    : String(error?.message || error || 'git-error');
+}
+
+function createGitHistoryMessageHandlers({ getWorkspacePath, sendHostMessage }) {
+  const workspacePath = () => getWorkspacePath?.() || null;
+
+  async function handleGetGitCapability(message = {}) {
+    const capability = await detectGitCapability(workspacePath());
+    sendHostMessage({ command: 'gitCapabilityResult', requestId: requestIdOf(message), capability });
+  }
+
+  async function handleListDocumentHistory(message = {}) {
+    try {
+      const revisions = await listDocumentHistory({
+        workspacePath: workspacePath(),
+        filePath: message.filePath,
+        limit: message.limit,
+      });
+      sendHostMessage({ command: 'documentHistoryResult', requestId: requestIdOf(message), ok: true, revisions });
+    } catch (error) {
+      sendHostMessage({ command: 'documentHistoryResult', requestId: requestIdOf(message), ok: false, revisions: [], reason: failureReason(error) });
+    }
+  }
+
+  async function handleReadGitRevision(message = {}) {
+    try {
+      const snapshot = await readGitRevision({ workspacePath: workspacePath(), oid: message.oid, path: message.path });
+      sendHostMessage({ command: 'gitRevisionResult', requestId: requestIdOf(message), ok: true, snapshot });
+    } catch (error) {
+      sendHostMessage({ command: 'gitRevisionResult', requestId: requestIdOf(message), ok: false, reason: failureReason(error) });
+    }
+  }
+
+  async function handleCompareGitRevisions(message = {}) {
+    try {
+      const result = await compareGitSources({ workspacePath: workspacePath(), left: message.left, right: message.right });
+      sendHostMessage({ command: 'gitComparisonResult', requestId: requestIdOf(message), ok: true, ...result });
+    } catch (error) {
+      sendHostMessage({ command: 'gitComparisonResult', requestId: requestIdOf(message), ok: false, reason: failureReason(error) });
+    }
+  }
+
+  return {
+    handleGetGitCapability,
+    handleListDocumentHistory,
+    handleReadGitRevision,
+    handleCompareGitRevisions,
+  };
+}
+
 module.exports = {
   FULL_OID,
   GitHistoryError,
   MAX_GIT_OUTPUT_BYTES,
   compareGitSources,
+  createGitHistoryMessageHandlers,
   detectGitCapability,
   listDocumentHistory,
   parseHistory,
