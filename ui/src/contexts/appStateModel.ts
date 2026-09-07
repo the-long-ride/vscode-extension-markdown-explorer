@@ -30,6 +30,7 @@ import type {
   RenderContentMessage,
 } from '../types';
 import type { EditableDocumentSession } from '../editor/documentSession';
+import { createSplitViewState, type SplitViewState } from '../split-view/paneState';
 
 import { normalizeMaxPinnedItems } from '../components/Sidebar/sidebarWorkspacePreferences';
 import { migrateDesktopFontBindings, type DesktopFontFamily } from '../desktop/fonts/fontModel';
@@ -80,6 +81,7 @@ export interface AppState {
   contentTabs: ContentTab[];
   activeContentTabPath: string | null;
   documentSessions: Record<string, EditableDocumentSession>;
+  splitView: SplitViewState;
   recentWorkspaces: RecentWorkspace[];
   isMaximized: boolean;
   appVersion: string;
@@ -233,6 +235,7 @@ export const initialState: AppState = {
   contentTabs: [],
   activeContentTabPath: null,
   documentSessions: {},
+  splitView: createSplitViewState(),
   recentWorkspaces: [],
   isMaximized: false,
   appVersion: '',
