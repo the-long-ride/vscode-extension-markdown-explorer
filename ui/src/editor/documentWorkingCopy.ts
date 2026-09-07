@@ -12,6 +12,7 @@ import {
   markSaveStarted,
   markSaveSucceeded,
   replaceWorkingSource,
+  resolveConflictWithDisk,
   setDocumentEditMode,
   type MarkdownEditMode,
 } from './documentSession';
@@ -20,6 +21,7 @@ export type DocumentEditingAction =
   | { readonly type: 'SET_WORKING_DOCUMENT_SOURCE'; readonly filePath: string; readonly source: string }
   | { readonly type: 'SET_DOCUMENT_EDIT_MODE'; readonly filePath: string; readonly mode: MarkdownEditMode }
   | { readonly type: 'DISCARD_DOCUMENT_CHANGES'; readonly filePath: string }
+  | { readonly type: 'RESOLVE_DOCUMENT_CONFLICT_RELOAD'; readonly filePath: string }
   | { readonly type: 'MARK_DOCUMENT_SAVE_STARTED'; readonly filePath: string }
   | { readonly type: 'APPLY_SAVE_DOCUMENT_RESULT'; readonly result: SaveDocumentResultMessage };
 
@@ -124,6 +126,23 @@ export function discardWorkingDocumentChanges(state: AppState, filePath: string)
   }, filePath, nextSession.source);
 }
 
+export function reloadDocumentConflictFromDisk(state: AppState, filePath: string): AppState {
+  const key = documentSessionKey(filePath);
+  const session = state.documentSessions[key];
+  if (!session?.conflict) return state;
+  const nextSession = resolveConflictWithDisk(session);
+  const withSession = updateTabProjection({
+    ...state,
+    documentSessions: { ...state.documentSessions, [key]: nextSession },
+  }, filePath, nextSession.source);
+  return {
+    ...withSession,
+    contentTabs: withSession.contentTabs.map((tab) => normalizePathKey(tab.filePath) === normalizePathKey(filePath)
+      ? { ...tab, documentWrite: tab.documentWrite ? { ...tab.documentWrite, revision: nextSession.revision } : tab.documentWrite }
+      : tab),
+  };
+}
+
 export function markDocumentSaveStarted(state: AppState, filePath: string): AppState {
   const key = documentSessionKey(filePath);
   const session = state.documentSessions[key];
@@ -163,6 +182,7 @@ export function reduceDocumentEditingAction(state: AppState, action: DocumentEdi
     case 'SET_WORKING_DOCUMENT_SOURCE': return updateWorkingDocumentSource(state, action.filePath, action.source);
     case 'SET_DOCUMENT_EDIT_MODE': return updateDocumentEditMode(state, action.filePath, action.mode);
     case 'DISCARD_DOCUMENT_CHANGES': return discardWorkingDocumentChanges(state, action.filePath);
+    case 'RESOLVE_DOCUMENT_CONFLICT_RELOAD': return reloadDocumentConflictFromDisk(state, action.filePath);
     case 'MARK_DOCUMENT_SAVE_STARTED': return markDocumentSaveStarted(state, action.filePath);
     case 'APPLY_SAVE_DOCUMENT_RESULT': return applySavedDocumentResult(state, action.result);
     default: return null;
