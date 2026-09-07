@@ -128,6 +128,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (targetPath) {
       const cachedPath = getCachedContentTabPath(targetPath);
       if (cachedPath) {
+        if (state.splitView.enabled) {
+          dispatch({ type: 'SET_SPLIT_PANE_FILE', paneId: state.splitView.activePane, filePath: cachedPath });
+        }
         dispatch({ type: 'ACTIVATE_CONTENT_TAB', filePath: cachedPath });
         if (options?.htmlPreviewOverride !== undefined) {
           dispatch({ type: 'SET_CONTENT_TAB_HTML_PREVIEW', filePath: cachedPath, enabled: options.htmlPreviewOverride });
@@ -136,10 +139,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         bridge.postMessage({ command: 'navigate', path: cachedPath });
         return;
       }
+      if (state.splitView.enabled) {
+        dispatch({
+          type: 'SET_SPLIT_PANE_FILE',
+          paneId: state.splitView.activePane,
+          filePath: targetPath.split('#')[0],
+        });
+      }
     }
     dispatch({ type: 'SET_LOADING' });
     bridge.postMessage({ command: 'navigate', path: targetPath });
-  }, [bridge, getCachedContentTabPath]);
+  }, [bridge, getCachedContentTabPath, state.splitView.activePane, state.splitView.enabled]);
 
   const activateContentTab = useCallback((fsPath: string) => {
     if (!fsPath) return;
