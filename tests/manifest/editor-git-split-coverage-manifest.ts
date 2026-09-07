@@ -12,6 +12,7 @@ export const editorGitSplitCoverageManifest: Record<string, string[]> = {
   'ui/src/components/Content/useInlineMarkdownEditing.ts': ['tests/unit/ui/components/use-inline-markdown-editing.test.tsx'],
   'ui/src/components/Modal/UnsavedChangesModal.tsx': ['tests/unit/ui/editor/unsaved-guards.test.tsx'],
   'ui/src/components/Modal/DocumentConflictModal.tsx': ['tests/unit/ui/editor/conflict-modal.test.tsx'],
+  'ui/src/split-view/paneState.ts': ['tests/unit/ui/split-view/pane-state.test.ts'],
   'electron/workspace/document-write.js': ['tests/unit/electron/document-write.test.ts'],
   'vscode/src/core/panelDocumentWrite.ts': ['tests/unit/vscode/panel-document-write.test.ts'],
 };
