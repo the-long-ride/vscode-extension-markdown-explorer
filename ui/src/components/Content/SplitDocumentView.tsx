@@ -22,7 +22,12 @@ export function SplitDocumentView({
   onCloseSecondary,
 }: SplitDocumentViewProps) {
   return (
-    <div className="split-document-view" data-active-pane={activePane} data-split-percent={Math.round(ratio * 100)}>
+    <div
+      className="split-document-view"
+      data-active-pane={activePane}
+      data-split-percent={Math.round(ratio * 100)}
+      style={{ gridTemplateColumns: `minmax(0, ${ratio}fr) 6px minmax(0, ${1 - ratio}fr)` }}
+    >
       <section
         className={`split-document-pane split-document-pane--primary${activePane === 'primary' ? ' is-active' : ''}`}
         role="region"
