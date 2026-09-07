@@ -22,6 +22,7 @@ import { requestSaveDocument, type SaveDocumentRequestOptions } from '../editor/
 import { documentSessionKey, type MarkdownEditMode } from '../editor/documentSession';
 import { useUnsavedChangesGuard } from '../editor/useUnsavedChangesGuard';
 import { useDocumentConflictResolution } from '../editor/useDocumentConflictResolution';
+import type { DocumentViewMode, PaneId } from '../split-view/paneState';
 import { useAppStateEffects } from './useAppStateEffects';
 import {
   type AppState,
@@ -66,6 +67,14 @@ interface AppStateContextValue {
   closeContentTabsToRight: (fsPath: string) => void;
   closeOtherContentTabs: (fsPath: string) => void;
   closeAllContentTabs: () => void;
+  openInSplit: (filePath: string) => void;
+  moveToOtherPane: (filePath: string) => void;
+  swapSplitPanes: () => void;
+  closeSplitView: () => void;
+  activatePane: (paneId: PaneId) => void;
+  setSplitRatio: (ratio: number) => void;
+  setSplitPaneMode: (paneId: PaneId, mode: DocumentViewMode) => void;
+  setSplitPaneScrollTop: (paneId: PaneId, scrollTop: number) => void;
   guardUnsavedChanges: (filePaths: string[], commit: () => void) => void;
   setWorkingDocumentSource: (filePath: string, source: string) => void;
   setDocumentEditMode: (filePath: string, mode: MarkdownEditMode) => void;
@@ -176,6 +185,45 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     bridge.postMessage({ command: 'navigate', path: '' });
   }, [bridge, state.contentTabs.length]);
 
+  const openInSplit = useCallback((filePath: string) => {
+    if (!filePath) return;
+    dispatch({ type: 'OPEN_SPLIT_VIEW', filePath });
+  }, []);
+
+  const moveToOtherPane = useCallback((filePath: string) => {
+    if (!filePath) return;
+    if (!state.splitView.enabled) {
+      dispatch({ type: 'OPEN_SPLIT_VIEW', filePath });
+      return;
+    }
+    const paneId: PaneId = state.splitView.activePane === 'primary' ? 'secondary' : 'primary';
+    dispatch({ type: 'SET_SPLIT_PANE_FILE', paneId, filePath });
+  }, [state.splitView.activePane, state.splitView.enabled]);
+
+  const swapSplitPanes = useCallback(() => {
+    dispatch({ type: 'SWAP_SPLIT_PANES' });
+  }, []);
+
+  const closeSplitView = useCallback(() => {
+    dispatch({ type: 'CLOSE_SPLIT_VIEW' });
+  }, []);
+
+  const activatePane = useCallback((paneId: PaneId) => {
+    dispatch({ type: 'ACTIVATE_SPLIT_PANE', paneId });
+  }, []);
+
+  const setSplitRatio = useCallback((ratio: number) => {
+    dispatch({ type: 'SET_SPLIT_RATIO', ratio });
+  }, []);
+
+  const setSplitPaneMode = useCallback((paneId: PaneId, mode: DocumentViewMode) => {
+    dispatch({ type: 'SET_SPLIT_PANE_MODE', paneId, mode });
+  }, []);
+
+  const setSplitPaneScrollTop = useCallback((paneId: PaneId, scrollTop: number) => {
+    dispatch({ type: 'SET_SPLIT_PANE_SCROLL', paneId, scrollTop });
+  }, []);
+
   const setWorkingDocumentSource = useCallback((filePath: string, source: string) => {
     dispatch({ type: 'SET_WORKING_DOCUMENT_SOURCE', filePath, source });
   }, []);
@@ -269,18 +317,21 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppStateContextValue>(() => ({
     state, dispatch, navigate, activateContentTab, reorderContentTabs, closeContentTab,
-    closeContentTabsToRight, closeOtherContentTabs, closeAllContentTabs, guardUnsavedChanges,
+    closeContentTabsToRight, closeOtherContentTabs, closeAllContentTabs,
+    openInSplit, moveToOtherPane, swapSplitPanes, closeSplitView, activatePane,
+    setSplitRatio, setSplitPaneMode, setSplitPaneScrollTop, guardUnsavedChanges,
     setWorkingDocumentSource, setDocumentEditMode, discardDocumentChanges, saveDocument,
     openInEditor, refresh, toggleTheme, setTheme, setThemeStyle, selectCustomTheme,
     toggleSidebar, setSidebarCollapsed, setSidebarActiveTab, toggleToc, toggleFocusMode,
     toggleDesktopViewMode, toggleDefaultHtmlPreview, setContentTabHtmlPreview, updateSettings,
   }), [
     state, navigate, activateContentTab, reorderContentTabs, closeContentTab, closeContentTabsToRight,
-    closeOtherContentTabs, closeAllContentTabs, guardUnsavedChanges, setWorkingDocumentSource,
-    setDocumentEditMode, discardDocumentChanges, saveDocument, openInEditor, refresh, toggleTheme,
-    setTheme, setThemeStyle, selectCustomTheme, toggleSidebar, setSidebarCollapsed,
-    setSidebarActiveTab, toggleToc, toggleFocusMode, toggleDesktopViewMode,
-    toggleDefaultHtmlPreview, setContentTabHtmlPreview, updateSettings,
+    closeOtherContentTabs, closeAllContentTabs, openInSplit, moveToOtherPane, swapSplitPanes,
+    closeSplitView, activatePane, setSplitRatio, setSplitPaneMode, setSplitPaneScrollTop,
+    guardUnsavedChanges, setWorkingDocumentSource, setDocumentEditMode, discardDocumentChanges,
+    saveDocument, openInEditor, refresh, toggleTheme, setTheme, setThemeStyle, selectCustomTheme,
+    toggleSidebar, setSidebarCollapsed, setSidebarActiveTab, toggleToc, toggleFocusMode,
+    toggleDesktopViewMode, toggleDefaultHtmlPreview, setContentTabHtmlPreview, updateSettings,
   ]);
 
   return (
