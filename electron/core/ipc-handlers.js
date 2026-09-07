@@ -141,6 +141,9 @@ function registerIpcHandlers({ ipcMain, clipboard, fs, handlers, getMainWindow, 
       case "compareGitRevisions":
         await handlers.compareGitRevisions(msg);
         break;
+      case "confirmNativeClose":
+        handlers.confirmNativeClose?.(msg);
+        break;
       case "listDesktopFonts":
         await handlers.listDesktopFonts(msg);
         break;
@@ -170,7 +173,8 @@ function registerIpcHandlers({ ipcMain, clipboard, fs, handlers, getMainWindow, 
         break;
       }
       case "window-close":
-        getMainWindow()?.close();
+        if (handlers.windowClose) handlers.windowClose();
+        else getMainWindow()?.close();
         break;
       case "toggle-fullscreen": {
         const mainWindow = getMainWindow();

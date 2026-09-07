@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { AppStateProvider } from './contexts/AppStateContext';
 import { HistoryProvider } from './contexts/HistoryContext';
 import { WorkspaceNavigationProvider } from './contexts/NavigationContext';
+import { NativeCloseGuardBridge } from './editor/NativeCloseGuardBridge';
 import { App } from './App';
 
 // Defer interactive component registration until after initial mount
@@ -51,6 +52,7 @@ export default function AppShell() {
 
   return (
     <AppStateProvider>
+      <NativeCloseGuardBridge />
       <HistoryProvider>
         <WorkspaceNavigationProvider>
           <App />
