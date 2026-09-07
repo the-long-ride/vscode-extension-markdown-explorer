@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useAppState } from '../../contexts/AppStateContext';
 import type { AppState } from '../../contexts/appStateModel';
 import { getEditorUiTranslations } from '../../contexts/editorUiTranslations';
+import { getSplitViewTranslations } from '../../contexts/splitViewTranslations';
 import { selectPaneDocument, type PaneDocumentProjection } from '../../split-view/paneSelectors';
 import type { DocumentViewMode, PaneId } from '../../split-view/paneState';
 import { DocumentSurface } from './DocumentSurface';
@@ -31,10 +32,6 @@ interface PaneViewProps {
 
 const EDITABLE_MODES: readonly DocumentViewMode[] = ['rendered', 'inline-edit', 'plain'];
 
-function paneName(paneId: PaneId): string {
-  return paneId === 'primary' ? 'Primary' : 'Secondary';
-}
-
 function SplitPaneView({
   paneId,
   projection,
@@ -47,6 +44,8 @@ function SplitPaneView({
 }: PaneViewProps): ReactNode {
   const scrollRef = useRef<HTMLDivElement>(null);
   const editorT = getEditorUiTranslations(language);
+  const splitT = getSplitViewTranslations(language);
+  const paneLabel = paneId === 'primary' ? splitT.primaryDocument : splitT.secondaryDocument;
 
   useLayoutEffect(() => {
     const node = scrollRef.current;
@@ -55,7 +54,7 @@ function SplitPaneView({
   }, [projection?.filePath, projection?.mode, projection?.scrollTop]);
 
   if (!projection) {
-    return <div className="split-document-pane__empty">No document</div>;
+    return <div className="split-document-pane__empty">{splitT.noDocument}</div>;
   }
 
   const modeLabels: Record<(typeof EDITABLE_MODES)[number], string> = {
@@ -63,19 +62,18 @@ function SplitPaneView({
     'inline-edit': editorT.inlineEdit,
     plain: editorT.plain,
   };
-  const label = paneName(paneId);
 
   return (
     <div className="split-document-pane__content">
       <header className="split-document-pane__header">
         <span className="split-document-pane__title" title={projection.filePath}>{projection.title || projection.fileName}</span>
-        <div className="split-document-pane__modes" role="group" aria-label={`${label} ${editorT.modeGroup}`}>
+        <div className="split-document-pane__modes" role="group" aria-label={`${paneLabel}: ${editorT.modeGroup}`}>
           {EDITABLE_MODES.map((mode) => (
             <button
               key={mode}
               type="button"
               className={`split-document-pane__mode${projection.mode === mode ? ' is-active' : ''}`}
-              aria-label={`${label} ${modeLabels[mode]}`}
+              aria-label={`${paneLabel} ${modeLabels[mode]}`}
               aria-pressed={projection.mode === mode}
               onClick={() => onModeChange(paneId, mode)}
             >
@@ -119,6 +117,7 @@ export function SplitContentView({
   onScrollChange,
 }: SplitContentViewProps) {
   const language = state.settings.language || 'en';
+  const splitT = getSplitViewTranslations(language);
   const primary = selectPaneDocument(state, 'primary');
   const secondary = selectPaneDocument(state, 'secondary');
 
@@ -127,6 +126,10 @@ export function SplitContentView({
       <SplitDocumentView
         ratio={state.splitView.ratio}
         activePane={state.splitView.activePane}
+        primaryLabel={splitT.primaryDocument}
+        secondaryLabel={splitT.secondaryDocument}
+        closeSecondaryLabel={splitT.closeSecondaryPane}
+        resizeLabel={splitT.resizeDocumentPanes}
         primary={(
           <SplitPaneView
             paneId="primary"
