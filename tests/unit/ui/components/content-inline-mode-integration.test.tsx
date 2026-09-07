@@ -10,6 +10,7 @@ import {
   documentSessionKey,
   setDocumentEditMode,
 } from '../../../../ui/src/editor/documentSession';
+import { createSplitViewState } from '../../../../ui/src/split-view/paneState';
 
 vi.mock('../../../../ui/src/contexts/AppStateContext');
 vi.mock('../../../../ui/src/contexts/NavigationContext');
@@ -80,6 +81,7 @@ function makeState() {
     renderVersion: 1,
     contentTabs: [],
     activeContentTabPath: null,
+    splitView: createSplitViewState(filePath),
     recentWorkspaces: [],
     documentSessions: { [documentSessionKey(filePath)]: session },
     isMaximized: false,
