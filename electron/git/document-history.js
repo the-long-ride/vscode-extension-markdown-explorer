@@ -1,5 +1,5 @@
 const { execFile } = require('node:child_process');
-const { readFile, stat } = require('node:fs/promises');
+const { readFile, realpath, stat } = require('node:fs/promises');
 const path = require('node:path');
 const { promisify } = require('node:util');
 
@@ -64,16 +64,28 @@ async function runGit(cwd, args) {
   }
 }
 
-async function resolveRepository(workspacePath) {
+async function resolveGitContext(workspacePath) {
   const cwd = await workspaceDirectory(workspacePath);
   const root = (await runGit(cwd, ['rev-parse', '--show-toplevel'])).trim();
   if (!root) throw new GitHistoryError('The workspace is not a Git repository', 'not-repository');
-  return path.resolve(root);
+  const repositoryRoot = path.resolve(root);
+  let workspaceRoot = path.resolve(cwd);
+  try {
+    workspaceRoot = await realpath(workspaceRoot);
+  } catch {}
+  if (!isSameOrInside(repositoryRoot, workspaceRoot)) {
+    throw new GitHistoryError('The workspace is outside the Git repository', 'not-repository');
+  }
+  return { repositoryRoot, workspaceRoot };
+}
+
+async function resolveRepository(workspacePath) {
+  return (await resolveGitContext(workspacePath)).repositoryRoot;
 }
 
 async function detectGitCapability(workspacePath) {
   try {
-    const repositoryRoot = await resolveRepository(workspacePath);
+    const { repositoryRoot } = await resolveGitContext(workspacePath);
     return { supported: true, repositoryRoot };
   } catch (error) {
     if (error instanceof GitHistoryError && error.reason === 'git-unavailable') {
@@ -83,7 +95,13 @@ async function detectGitCapability(workspacePath) {
   }
 }
 
-function repositoryRelativePath(repositoryRoot, filePath) {
+function assertWorkspacePath(workspaceRoot, absolute) {
+  if (!isSameOrInside(workspaceRoot, absolute)) {
+    throw new GitHistoryError('Document path is outside workspace', 'outside-workspace');
+  }
+}
+
+function repositoryRelativePath(repositoryRoot, filePath, workspaceRoot = repositoryRoot) {
   if (typeof filePath !== 'string' || !filePath.trim()) {
     throw new GitHistoryError('A document path is required', 'outside-repository');
   }
@@ -93,6 +111,7 @@ function repositoryRelativePath(repositoryRoot, filePath) {
   if (!isSameOrInside(repositoryRoot, absolute)) {
     throw new GitHistoryError('Document path is outside repository', 'outside-repository');
   }
+  assertWorkspacePath(workspaceRoot, absolute);
   const relative = path.relative(repositoryRoot, absolute);
   if (!relative || relative === '.') {
     throw new GitHistoryError('Document path must identify a file inside the repository', 'outside-repository');
@@ -100,7 +119,7 @@ function repositoryRelativePath(repositoryRoot, filePath) {
   return toGitPath(relative);
 }
 
-function validateGitPath(repositoryRoot, gitPath) {
+function validateGitPath(repositoryRoot, gitPath, workspaceRoot = repositoryRoot) {
   if (typeof gitPath !== 'string' || !gitPath.trim() || path.isAbsolute(gitPath)) {
     throw new GitHistoryError('Document path is outside repository', 'outside-repository');
   }
@@ -109,6 +128,7 @@ function validateGitPath(repositoryRoot, gitPath) {
   if (!isSameOrInside(repositoryRoot, absolute)) {
     throw new GitHistoryError('Document path is outside repository', 'outside-repository');
   }
+  assertWorkspacePath(workspaceRoot, absolute);
   return toGitPath(path.relative(repositoryRoot, absolute));
 }
 
@@ -157,8 +177,8 @@ function parseHistory(output, initialPath) {
 }
 
 async function listDocumentHistory({ workspacePath, filePath, limit } = {}) {
-  const repositoryRoot = await resolveRepository(workspacePath);
-  const gitPath = repositoryRelativePath(repositoryRoot, filePath);
+  const { repositoryRoot, workspaceRoot } = await resolveGitContext(workspacePath);
+  const gitPath = repositoryRelativePath(repositoryRoot, filePath, workspaceRoot);
   const output = await runGit(repositoryRoot, [
     'log',
     '--follow',
@@ -175,26 +195,26 @@ async function listDocumentHistory({ workspacePath, filePath, limit } = {}) {
 
 async function readGitRevision({ workspacePath, oid, path: revisionPath } = {}) {
   const validatedOid = validateOid(oid);
-  const repositoryRoot = await resolveRepository(workspacePath);
-  const gitPath = validateGitPath(repositoryRoot, revisionPath);
+  const { repositoryRoot, workspaceRoot } = await resolveGitContext(workspacePath);
+  const gitPath = validateGitPath(repositoryRoot, revisionPath, workspaceRoot);
   const source = await runGit(repositoryRoot, ['show', `${validatedOid}:${gitPath}`]);
   return { oid: validatedOid, path: gitPath, source };
 }
 
-async function readCompareSide(repositoryRoot, side) {
+async function readCompareSide(repositoryRoot, workspaceRoot, side) {
   if (!side || typeof side !== 'object') {
     throw new GitHistoryError('Invalid comparison side', 'invalid-comparison');
   }
   if (side.kind === 'revision') {
     const oid = validateOid(side.oid);
-    const gitPath = validateGitPath(repositoryRoot, side.path);
+    const gitPath = validateGitPath(repositoryRoot, side.path, workspaceRoot);
     return {
       source: await runGit(repositoryRoot, ['show', `${oid}:${gitPath}`]),
       label: `${oid.slice(0, 7)}:${gitPath}`,
     };
   }
   if (side.kind === 'current') {
-    const gitPath = repositoryRelativePath(repositoryRoot, side.path);
+    const gitPath = repositoryRelativePath(repositoryRoot, side.path, workspaceRoot);
     const absolutePath = path.resolve(repositoryRoot, ...gitPath.split('/'));
     return {
       source: await readFile(absolutePath, 'utf8'),
@@ -205,10 +225,10 @@ async function readCompareSide(repositoryRoot, side) {
 }
 
 async function compareGitSources({ workspacePath, left, right } = {}) {
-  const repositoryRoot = await resolveRepository(workspacePath);
+  const { repositoryRoot, workspaceRoot } = await resolveGitContext(workspacePath);
   const [leftResult, rightResult] = await Promise.all([
-    readCompareSide(repositoryRoot, left),
-    readCompareSide(repositoryRoot, right),
+    readCompareSide(repositoryRoot, workspaceRoot, left),
+    readCompareSide(repositoryRoot, workspaceRoot, right),
   ]);
   return {
     leftSource: leftResult.source,
@@ -285,4 +305,5 @@ module.exports = {
   listDocumentHistory,
   parseHistory,
   readGitRevision,
+  resolveRepository,
 };

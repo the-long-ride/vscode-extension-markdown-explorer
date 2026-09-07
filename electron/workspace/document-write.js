@@ -50,6 +50,10 @@ function failure(reason, error) {
   };
 }
 
+async function canonicalExistingPath(filePath, fsApi = fs) {
+  return fsApi.promises.realpath(filePath);
+}
+
 async function saveWorkspaceDocument({
   workspacePath,
   filePath,
@@ -66,10 +70,25 @@ async function saveWorkspaceDocument({
   const baseDir = await workspaceBaseDir(workspacePath, fsApi, pathApi);
   if (!baseDir) return failure('missing');
 
-  const target = pathApi.isAbsolute(filePath)
+  const requestedTarget = pathApi.isAbsolute(filePath)
     ? pathApi.resolve(filePath)
     : pathApi.resolve(baseDir, filePath);
-  if (!isSameOrInsidePath(baseDir, target, pathApi)) {
+  if (!isSameOrInsidePath(baseDir, requestedTarget, pathApi)) {
+    return failure('outside-workspace');
+  }
+
+  let canonicalBase;
+  let target;
+  try {
+    [canonicalBase, target] = await Promise.all([
+      canonicalExistingPath(baseDir, fsApi),
+      canonicalExistingPath(requestedTarget, fsApi),
+    ]);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return failure('missing');
+    return failure('write-failed', error);
+  }
+  if (!isSameOrInsidePath(canonicalBase, target, pathApi)) {
     return failure('outside-workspace');
   }
 

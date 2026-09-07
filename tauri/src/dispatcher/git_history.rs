@@ -85,12 +85,21 @@ fn workspace_directory(workspace_path: &Path) -> PathBuf {
     }
 }
 
-fn resolve_repository(workspace_path: &Path) -> Result<PathBuf, GitHistoryError> {
-    let cwd = workspace_directory(workspace_path);
-    let root = run_git(&cwd, &["rev-parse".into(), "--show-toplevel".into()])?;
+fn resolve_context(workspace_path: &Path) -> Result<(PathBuf, PathBuf), GitHistoryError> {
+    let workspace = workspace_directory(workspace_path);
+    let root = run_git(&workspace, &["rev-parse".into(), "--show-toplevel".into()])?;
     let trimmed = root.trim();
     if trimmed.is_empty() { return Err(error("not-repository", "The workspace is not a Git repository")); }
-    Ok(PathBuf::from(trimmed))
+    let repository_root = PathBuf::from(trimmed);
+    let workspace_root = fs::canonicalize(&workspace).unwrap_or(workspace);
+    if !workspace_root.starts_with(&repository_root) {
+        return Err(error("not-repository", "The workspace is outside the Git repository"));
+    }
+    Ok((repository_root, workspace_root))
+}
+
+fn resolve_repository(workspace_path: &Path) -> Result<PathBuf, GitHistoryError> {
+    resolve_context(workspace_path).map(|(root, _)| root)
 }
 
 pub fn detect_git_capability(workspace_path: Option<&Path>) -> GitCapability {
@@ -118,7 +127,14 @@ fn validate_oid(oid: &str) -> Result<String, GitHistoryError> {
     Ok(oid.to_ascii_lowercase())
 }
 
-fn validate_git_path(value: &str) -> Result<String, GitHistoryError> {
+fn assert_workspace_path(workspace_root: &Path, absolute: &Path) -> Result<(), GitHistoryError> {
+    if !absolute.starts_with(workspace_root) {
+        return Err(error("outside-workspace", "Document path is outside workspace"));
+    }
+    Ok(())
+}
+
+fn validate_git_path(repository_root: &Path, workspace_root: &Path, value: &str) -> Result<String, GitHistoryError> {
     if value.is_empty() { return Err(error("outside-repository", "Document path is outside repository")); }
     let path = Path::new(value);
     if path.is_absolute() { return Err(error("outside-repository", "Document path is outside repository")); }
@@ -133,15 +149,18 @@ fn validate_git_path(value: &str) -> Result<String, GitHistoryError> {
         }
     }
     if parts.is_empty() { return Err(error("outside-repository", "Document path is outside repository")); }
+    let absolute = parts.iter().fold(repository_root.to_path_buf(), |current, part| current.join(part));
+    assert_workspace_path(workspace_root, &absolute)?;
     Ok(parts.join("/"))
 }
 
-fn repository_relative_path(repository_root: &Path, file_path: &Path) -> Result<String, GitHistoryError> {
+fn repository_relative_path(repository_root: &Path, workspace_root: &Path, file_path: &Path) -> Result<String, GitHistoryError> {
     let absolute = if file_path.is_absolute() { file_path.to_path_buf() } else { repository_root.join(file_path) };
     let root = fs::canonicalize(repository_root).unwrap_or_else(|_| repository_root.to_path_buf());
     let target = fs::canonicalize(&absolute).unwrap_or(absolute);
     let relative = target.strip_prefix(&root).map_err(|_| error("outside-repository", "Document path is outside repository"))?;
-    validate_git_path(&relative.to_string_lossy())
+    assert_workspace_path(workspace_root, &target)?;
+    validate_git_path(&root, workspace_root, &relative.to_string_lossy())
 }
 
 fn parse_history(output: &str, initial_path: &str) -> Vec<GitRevisionSummary> {
@@ -172,8 +191,8 @@ fn parse_history(output: &str, initial_path: &str) -> Vec<GitRevisionSummary> {
 }
 
 pub fn list_document_history(workspace_path: &Path, file_path: &Path, limit: usize) -> Result<Vec<GitRevisionSummary>, GitHistoryError> {
-    let repository_root = resolve_repository(workspace_path)?;
-    let git_path = repository_relative_path(&repository_root, file_path)?;
+    let (repository_root, workspace_root) = resolve_context(workspace_path)?;
+    let git_path = repository_relative_path(&repository_root, &workspace_root, file_path)?;
     let limit = if limit == 0 { DEFAULT_HISTORY_LIMIT } else { limit.min(MAX_HISTORY_LIMIT) };
     let output = run_git(&repository_root, &[
         "log".into(), "--follow".into(), "--format=%x1e%H%x1f%an%x1f%aI%x1f%s".into(),
@@ -184,22 +203,22 @@ pub fn list_document_history(workspace_path: &Path, file_path: &Path, limit: usi
 
 pub fn read_git_revision(workspace_path: &Path, oid: &str, revision_path: &str) -> Result<GitRevisionSnapshot, GitHistoryError> {
     let oid = validate_oid(oid)?;
-    let repository_root = resolve_repository(workspace_path)?;
-    let git_path = validate_git_path(revision_path)?;
+    let (repository_root, workspace_root) = resolve_context(workspace_path)?;
+    let git_path = validate_git_path(&repository_root, &workspace_root, revision_path)?;
     let source = run_git(&repository_root, &["show".into(), format!("{oid}:{git_path}")])?;
     Ok(GitRevisionSnapshot { oid, path: git_path, source })
 }
 
-fn read_compare_side(repository_root: &Path, side: &GitCompareSide) -> Result<(String, String), GitHistoryError> {
+fn read_compare_side(repository_root: &Path, workspace_root: &Path, side: &GitCompareSide) -> Result<(String, String), GitHistoryError> {
     match side {
         GitCompareSide::Revision { oid, path } => {
             let oid = validate_oid(oid)?;
-            let git_path = validate_git_path(path)?;
+            let git_path = validate_git_path(repository_root, workspace_root, path)?;
             let source = run_git(repository_root, &["show".into(), format!("{oid}:{git_path}")])?;
             Ok((source, format!("{}:{git_path}", &oid[..7])))
         }
         GitCompareSide::Current { path } => {
-            let git_path = repository_relative_path(repository_root, Path::new(path))?;
+            let git_path = repository_relative_path(repository_root, workspace_root, Path::new(path))?;
             let source = fs::read_to_string(repository_root.join(&git_path)).map_err(|err| error("unreadable", err.to_string()))?;
             Ok((source, format!("Current:{git_path}")))
         }
@@ -207,9 +226,9 @@ fn read_compare_side(repository_root: &Path, side: &GitCompareSide) -> Result<(S
 }
 
 pub fn compare_git_sources(workspace_path: &Path, left: &GitCompareSide, right: &GitCompareSide) -> Result<GitComparisonSources, GitHistoryError> {
-    let repository_root = resolve_repository(workspace_path)?;
-    let (left_source, left_label) = read_compare_side(&repository_root, left)?;
-    let (right_source, right_label) = read_compare_side(&repository_root, right)?;
+    let (repository_root, workspace_root) = resolve_context(workspace_path)?;
+    let (left_source, left_label) = read_compare_side(&repository_root, &workspace_root, left)?;
+    let (right_source, right_label) = read_compare_side(&repository_root, &workspace_root, right)?;
     Ok(GitComparisonSources { left_source, right_source, left_label, right_label })
 }
 
@@ -316,5 +335,19 @@ mod tests {
     #[test]
     fn rejects_invalid_full_revision_identifiers() {
         let repo = create_repo(); let error = read_git_revision(&repo.0, "HEAD;rm -rf .", "a.md").unwrap_err(); assert_eq!(error.reason, "invalid-revision");
+    }
+
+    #[test]
+    fn rejects_repository_files_outside_subfolder_workspace() {
+        let repo = create_repo();
+        let inside_oid = commit_file(&repo.0, "docs/inside.md", "# inside\n", "inside");
+        let secret_oid = commit_file(&repo.0, "secret.md", "# secret\n", "secret");
+        let workspace = repo.0.join("docs");
+
+        let history_error = list_document_history(&workspace, &repo.0.join("secret.md"), 20).unwrap_err();
+        assert_eq!(history_error.reason, "outside-workspace");
+        let secret_error = read_git_revision(&workspace, &secret_oid, "secret.md").unwrap_err();
+        assert_eq!(secret_error.reason, "outside-workspace");
+        assert_eq!(read_git_revision(&workspace, &inside_oid, "docs/inside.md").unwrap().source, "# inside\n");
     }
 }

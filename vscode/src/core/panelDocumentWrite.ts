@@ -1,7 +1,9 @@
+import { realpath as nodeRealpath } from 'node:fs/promises';
 import * as path from 'path';
 
 type FileStatLike = { mtime: number; size: number };
 type UriLike = { fsPath: string };
+type RealpathImpl = (filePath: string) => Promise<string>;
 
 export interface PanelDocumentWriteCapability {
   readonly supported: boolean;
@@ -44,6 +46,10 @@ export interface PanelDocumentWriteDeps {
   };
 }
 
+interface PanelDocumentWriteOptions {
+  readonly realpathImpl?: RealpathImpl;
+}
+
 function isSameOrInsidePath(basePath: string, targetPath: string): boolean {
   const relative = path.relative(path.resolve(basePath), path.resolve(targetPath));
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
@@ -54,6 +60,18 @@ function workspaceRootFor(filePath: string, deps: PanelDocumentWriteDeps): strin
     if (isSameOrInsidePath(folder.uri.fsPath, filePath)) return folder.uri.fsPath;
   }
   return null;
+}
+
+async function canonicalTargetInsideWorkspace(
+  workspaceRoot: string,
+  filePath: string,
+  realpathImpl: RealpathImpl,
+): Promise<boolean> {
+  const [canonicalRoot, canonicalTarget] = await Promise.all([
+    realpathImpl(workspaceRoot),
+    realpathImpl(filePath),
+  ]);
+  return isSameOrInsidePath(canonicalRoot, canonicalTarget);
 }
 
 function revisionFromStat(stat: FileStatLike): string {
@@ -87,14 +105,20 @@ export async function panelDocumentRevision(
 export async function panelDocumentWriteCapability(
   filePath: string,
   deps: PanelDocumentWriteDeps,
+  options: PanelDocumentWriteOptions = {},
 ): Promise<PanelDocumentWriteCapability> {
   if (!/\.mdx?$/i.test(filePath)) {
     return { supported: false, revision: null, reason: 'unsupported-document' };
   }
-  if (!workspaceRootFor(filePath, deps)) {
+  const workspaceRoot = workspaceRootFor(filePath, deps);
+  if (!workspaceRoot) {
     return { supported: false, revision: null, reason: 'read-only-runtime' };
   }
   try {
+    const realpathImpl = options.realpathImpl ?? nodeRealpath;
+    if (!(await canonicalTargetInsideWorkspace(workspaceRoot, filePath, realpathImpl))) {
+      return { supported: false, revision: null, reason: 'read-only-runtime' };
+    }
     return { supported: true, revision: await panelDocumentRevision(filePath, deps) };
   } catch {
     return { supported: false, revision: null, reason: 'read-only-runtime' };
@@ -104,10 +128,27 @@ export async function panelDocumentWriteCapability(
 export async function handlePanelDocumentWrite(
   message: PanelSaveDocumentMessage,
   deps: PanelDocumentWriteDeps,
+  options: PanelDocumentWriteOptions = {},
 ): Promise<PanelSaveDocumentResultMessage> {
   const base = baseResult(message);
-  if (!workspaceRootFor(message.filePath, deps)) {
+  const workspaceRoot = workspaceRootFor(message.filePath, deps);
+  if (!workspaceRoot) {
     return { ...base, ok: false, reason: 'outside-workspace' };
+  }
+
+  const realpathImpl = options.realpathImpl ?? nodeRealpath;
+  try {
+    if (!(await canonicalTargetInsideWorkspace(workspaceRoot, message.filePath, realpathImpl))) {
+      return { ...base, ok: false, reason: 'outside-workspace' };
+    }
+  } catch (error) {
+    const missing = isMissingError(error);
+    return {
+      ...base,
+      ok: false,
+      reason: missing ? 'missing' : 'write-failed',
+      ...(!missing ? { error: String((error as Error)?.message || error) } : {}),
+    };
   }
 
   const uri = deps.Uri.file(message.filePath);

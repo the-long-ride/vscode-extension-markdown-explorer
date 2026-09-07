@@ -49,17 +49,25 @@ function validateOid(oid: string): string {
   return oid.toLowerCase();
 }
 
-function validateGitPath(repositoryRoot: string, gitPath: string): string {
+function assertWorkspacePath(workspaceRoot: string, absolute: string): void {
+  if (!isSameOrInside(workspaceRoot, absolute)) {
+    throw new PanelGitHistoryError('Document path is outside workspace', 'outside-workspace');
+  }
+}
+
+function validateGitPath(repositoryRoot: string, workspaceRoot: string, gitPath: string): string {
   if (!gitPath || path.isAbsolute(gitPath)) throw new PanelGitHistoryError('Document path is outside repository', 'outside-repository');
   const absolute = path.resolve(repositoryRoot, ...gitPath.replace(/\\/g, '/').split('/'));
   if (!isSameOrInside(repositoryRoot, absolute)) throw new PanelGitHistoryError('Document path is outside repository', 'outside-repository');
+  assertWorkspacePath(workspaceRoot, absolute);
   return toGitPath(path.relative(repositoryRoot, absolute));
 }
 
-function repositoryRelativePath(repositoryRoot: string, filePath: string): string {
+function repositoryRelativePath(repositoryRoot: string, workspaceRoot: string, filePath: string): string {
   if (!filePath) throw new PanelGitHistoryError('A document path is required', 'outside-repository');
   const absolute = path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(repositoryRoot, filePath);
   if (!isSameOrInside(repositoryRoot, absolute)) throw new PanelGitHistoryError('Document path is outside repository', 'outside-repository');
+  assertWorkspacePath(workspaceRoot, absolute);
   const relative = path.relative(repositoryRoot, absolute);
   if (!relative) throw new PanelGitHistoryError('Document path must identify a file', 'outside-repository');
   return toGitPath(relative);
@@ -103,48 +111,52 @@ export function createPanelGitHistoryAdapter({
     try { return (await stat(resolved)).isFile() ? path.dirname(resolved) : resolved; } catch { return resolved; }
   }
 
-  async function resolveRepository(workspacePath: string): Promise<string> {
+  async function resolveContext(workspacePath: string): Promise<{ repositoryRoot: string; workspaceRoot: string }> {
     if (!workspacePath) throw new PanelGitHistoryError('A workspace path is required', 'not-repository');
-    const cwd = await workspaceDirectory(workspacePath);
-    const root = (await runGit(cwd, ['rev-parse', '--show-toplevel'])).trim();
+    const workspaceRoot = await workspaceDirectory(workspacePath);
+    const root = (await runGit(workspaceRoot, ['rev-parse', '--show-toplevel'])).trim();
     if (!root) throw new PanelGitHistoryError('The workspace is not a Git repository', 'not-repository');
-    return path.resolve(root);
+    const repositoryRoot = path.resolve(root);
+    if (!isSameOrInside(repositoryRoot, workspaceRoot)) {
+      throw new PanelGitHistoryError('The workspace is outside the Git repository', 'not-repository');
+    }
+    return { repositoryRoot, workspaceRoot: path.resolve(workspaceRoot) };
   }
 
   async function detectGitCapability(workspacePath: string) {
-    try { return { supported: true as const, repositoryRoot: await resolveRepository(workspacePath) }; }
+    try { return { supported: true as const, repositoryRoot: (await resolveContext(workspacePath)).repositoryRoot }; }
     catch (error) {
       return { supported: false as const, reason: error instanceof PanelGitHistoryError && error.reason === 'git-unavailable' ? 'git-unavailable' as const : 'not-repository' as const };
     }
   }
 
   async function listDocumentHistory({ workspacePath, filePath, limit }: { workspacePath: string; filePath: string; limit?: number }) {
-    const repositoryRoot = await resolveRepository(workspacePath);
-    const gitPath = repositoryRelativePath(repositoryRoot, filePath);
+    const { repositoryRoot, workspaceRoot } = await resolveContext(workspacePath);
+    const gitPath = repositoryRelativePath(repositoryRoot, workspaceRoot, filePath);
     const output = await runGit(repositoryRoot, ['log', '--follow', '--format=%x1e%H%x1f%an%x1f%aI%x1f%s', '--name-status', '-M', '-n', String(normalizeLimit(limit)), '--', gitPath]);
     return parsePanelGitHistory(output, gitPath);
   }
 
   async function readGitRevision({ workspacePath, oid, path: revisionPath }: { workspacePath: string; oid: string; path: string }) {
     const validatedOid = validateOid(oid);
-    const repositoryRoot = await resolveRepository(workspacePath);
-    const gitPath = validateGitPath(repositoryRoot, revisionPath);
+    const { repositoryRoot, workspaceRoot } = await resolveContext(workspacePath);
+    const gitPath = validateGitPath(repositoryRoot, workspaceRoot, revisionPath);
     return { oid: validatedOid, path: gitPath, source: await runGit(repositoryRoot, ['show', `${validatedOid}:${gitPath}`]) };
   }
 
-  async function readSide(repositoryRoot: string, side: GitCompareSide) {
+  async function readSide(repositoryRoot: string, workspaceRoot: string, side: GitCompareSide) {
     if (side.kind === 'revision') {
       const oid = validateOid(side.oid);
-      const gitPath = validateGitPath(repositoryRoot, side.path);
+      const gitPath = validateGitPath(repositoryRoot, workspaceRoot, side.path);
       return { source: await runGit(repositoryRoot, ['show', `${oid}:${gitPath}`]), label: `${oid.slice(0, 7)}:${gitPath}` };
     }
-    const gitPath = repositoryRelativePath(repositoryRoot, side.path);
+    const gitPath = repositoryRelativePath(repositoryRoot, workspaceRoot, side.path);
     return { source: await readFileImpl(path.resolve(repositoryRoot, ...gitPath.split('/')), 'utf8'), label: `Current:${gitPath}` };
   }
 
   async function compareGitSources({ workspacePath, left, right }: { workspacePath: string; left: GitCompareSide; right: GitCompareSide }) {
-    const repositoryRoot = await resolveRepository(workspacePath);
-    const [leftResult, rightResult] = await Promise.all([readSide(repositoryRoot, left), readSide(repositoryRoot, right)]);
+    const { repositoryRoot, workspaceRoot } = await resolveContext(workspacePath);
+    const [leftResult, rightResult] = await Promise.all([readSide(repositoryRoot, workspaceRoot, left), readSide(repositoryRoot, workspaceRoot, right)]);
     return { leftSource: leftResult.source, rightSource: rightResult.source, leftLabel: leftResult.label, rightLabel: rightResult.label };
   }
 
