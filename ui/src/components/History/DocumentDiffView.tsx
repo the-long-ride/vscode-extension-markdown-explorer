@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import '../../styles/global/global-history-diff.css';
 import { RenderedDiffView } from './RenderedDiffView';
 import { SourceDiffView } from './SourceDiffView';
 
