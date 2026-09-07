@@ -44,4 +44,33 @@ describe('DocumentHistoryPanel', () => {
     await userEvent.click(await screen.findByRole('button', { name: /view revision/i }));
     expect(onViewRevision).toHaveBeenCalledWith(revision);
   });
+
+  it('surfaces revision action failures without unmounting the loaded history', async () => {
+    const client = createClient();
+    const onViewRevision = vi.fn().mockRejectedValue(new Error('Revision could not be read'));
+    render(<DocumentHistoryPanel filePath="/repo/docs/a.md" client={client} onClose={() => {}} onViewRevision={onViewRevision} />);
+    await userEvent.click(screen.getByRole('button', { name: /load history/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /view revision/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Revision could not be read');
+    expect(screen.getByText('docs: update')).toBeInTheDocument();
+  });
+
+  it('uses the same visible error path for compare action failures', async () => {
+    const client = createClient();
+    const onCompareCurrent = vi.fn().mockRejectedValue('comparison failed');
+    render(
+      <DocumentHistoryPanel
+        filePath="/repo/docs/a.md"
+        client={client}
+        onClose={() => {}}
+        onViewRevision={() => {}}
+        onCompareCurrent={onCompareCurrent}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /load history/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /compare with current/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('comparison failed');
+  });
 });
