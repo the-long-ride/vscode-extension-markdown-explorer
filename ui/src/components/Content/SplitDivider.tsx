@@ -23,6 +23,31 @@ export function SplitDivider({ ratio, onRatioChange }: SplitDividerProps) {
     onRatioChange(clampRatio(next));
   };
 
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const root = event.currentTarget.parentElement;
+    if (!root) return;
+    const bounds = root.getBoundingClientRect();
+    if (bounds.width <= 0) return;
+    event.preventDefault();
+    const pointerId = event.pointerId;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      const next = (moveEvent.clientX - bounds.left) / bounds.width;
+      onRatioChange(clampRatio(next));
+    };
+    const finish = (endEvent: PointerEvent) => {
+      if (endEvent.pointerId !== pointerId) return;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+  };
+
   return (
     <div
       className="split-document-divider"
@@ -34,6 +59,7 @@ export function SplitDivider({ ratio, onRatioChange }: SplitDividerProps) {
       aria-valuenow={Math.round(ratio * 100)}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
     />
   );
 }
