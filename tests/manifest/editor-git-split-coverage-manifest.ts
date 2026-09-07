@@ -6,6 +6,8 @@ export const editorGitSplitCoverageManifest: Record<string, string[]> = {
   'ui/src/editor/unsavedGuards.ts': ['tests/unit/ui/editor/unsaved-guards.test.tsx'],
   'ui/src/editor/useUnsavedChangesGuard.tsx': ['tests/unit/ui/editor/unsaved-guard-integration.test.tsx'],
   'ui/src/editor/useDocumentConflictResolution.tsx': ['tests/unit/ui/editor/conflict-resolution-integration.test.tsx'],
+  'ui/src/history/contracts.ts': ['tests/unit/ui/history/history-client.test.ts'],
+  'ui/src/history/historyClient.ts': ['tests/unit/ui/history/history-client.test.ts'],
   'ui/src/contexts/editorUiTranslations.ts': ['tests/unit/ui/contexts/editor-ui-translations.test.ts'],
   'ui/src/contexts/splitViewTranslations.ts': ['tests/unit/ui/contexts/split-view-translations.test.ts'],
   'ui/src/components/Content/PlainMarkdownEditor.tsx': ['tests/unit/ui/components/plain-markdown-editor.test.tsx'],

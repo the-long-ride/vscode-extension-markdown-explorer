@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { PaneId } from '../../split-view/paneState';
 import { SplitDivider } from './SplitDivider';
 
@@ -29,12 +29,21 @@ export function SplitDocumentView({
   onRatioChange,
   onCloseSecondary,
 }: SplitDocumentViewProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    root.style.setProperty('--split-primary-size', `${ratio}fr`);
+    root.style.setProperty('--split-secondary-size', `${1 - ratio}fr`);
+  }, [ratio]);
+
   return (
     <div
+      ref={rootRef}
       className="split-document-view"
       data-active-pane={activePane}
       data-split-percent={Math.round(ratio * 100)}
-      style={{ gridTemplateColumns: `minmax(0, ${ratio}fr) 6px minmax(0, ${1 - ratio}fr)` }}
     >
       <section
         className={`split-document-pane split-document-pane--primary${activePane === 'primary' ? ' is-active' : ''}`}
