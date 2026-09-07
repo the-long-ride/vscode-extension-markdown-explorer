@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentTabs } from '../../../../ui/src/components/Content/ContentTabs';
+import { createSplitViewState } from '../../../../ui/src/split-view/paneState';
 
 const closeContentTab = vi.fn();
 const guardUnsavedChanges = vi.fn();
@@ -16,6 +17,7 @@ vi.mock('../../../../ui/src/contexts/AppStateContext', () => ({
       }],
       activeContentTabPath: '/docs/a.md',
       documentSessions: {},
+      splitView: createSplitViewState('/docs/a.md'),
       appRuntime: 'web',
     },
     activateContentTab: vi.fn(),

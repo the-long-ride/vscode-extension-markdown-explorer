@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditableDocumentSession, documentSessionKey, replaceWorkingSource } from '../../../../ui/src/editor/documentSession';
+import { createSplitViewState } from '../../../../ui/src/split-view/paneState';
 
 const mockAppState: any = {
   state: {},
@@ -65,6 +66,7 @@ describe('ContentTabs dirty document sessions', () => {
         previewInfo: null,
       }],
       documentSessions: { [documentSessionKey(filePath)]: session },
+      splitView: createSplitViewState(filePath),
     };
   });
 
