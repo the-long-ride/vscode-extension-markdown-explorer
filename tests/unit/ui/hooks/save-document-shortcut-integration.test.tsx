@@ -56,14 +56,22 @@ describe('global Save current document shortcut', () => {
     state = {
       appRuntime: 'web',
       currentFile: filePath,
+      currentDocumentWrite: { supported: true, revision: '1:3' },
       activeContentTabPath: filePath,
       documentSessions: { [documentSessionKey(filePath)]: session },
-      contentTabs: [{ filePath, documentWrite: { supported: true, revision: '1:3' } }],
+      contentTabs: [],
       settings: { keybindings: { saveCurrentDocument: 'Ctrl+S' }, disabledKeybindings: {} },
     };
   });
 
-  it('saves the dirty writable active Markdown document on Ctrl+S outside an editor', () => {
+  it('saves the dirty writable active Markdown document with file tabs disabled', () => {
+    renderHook(() => useKeyboard(props));
+    fireSave();
+    expect(saveDocument).toHaveBeenCalledWith(filePath);
+  });
+
+  it('allows Save to request browser write permission', () => {
+    state.currentDocumentWrite = { supported: false, revision: '1:3', reason: 'permission-required' };
     renderHook(() => useKeyboard(props));
     fireSave();
     expect(saveDocument).toHaveBeenCalledWith(filePath);
@@ -77,7 +85,7 @@ describe('global Save current document shortcut', () => {
   });
 
   it('does not save when the host marks the document read-only', () => {
-    state.contentTabs[0].documentWrite.supported = false;
+    state.currentDocumentWrite = { supported: false, revision: '1:3', reason: 'read-only-runtime' };
     renderHook(() => useKeyboard(props));
     fireSave();
     expect(saveDocument).not.toHaveBeenCalled();

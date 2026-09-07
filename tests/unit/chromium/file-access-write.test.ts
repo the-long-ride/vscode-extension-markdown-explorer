@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { documentRevision, writeTextFile } from '../../../chromium-xtension/src/file-access';
+import { documentRevision, documentWriteCapability, writeTextFile } from '../../../chromium-xtension/src/file-access';
 
 function createFileHandle(initialSource = '# A', initialModified = 10) {
   let source = initialSource;
@@ -9,6 +9,7 @@ function createFileHandle(initialSource = '# A', initialModified = 10) {
   const handle: any = {
     kind: 'file',
     name: 'a.md',
+    queryPermission: vi.fn(async () => 'prompt'),
     getFile: vi.fn(async () => ({
       lastModified,
       size: new TextEncoder().encode(source).byteLength,
@@ -16,7 +17,13 @@ function createFileHandle(initialSource = '# A', initialModified = 10) {
     })),
     createWritable: vi.fn(async () => ({ write, close })),
   };
-  return { handle, readSource: () => source, write, close };
+  return {
+    handle,
+    readSource: () => source,
+    setSource: (next: string, modified = lastModified + 1) => { source = next; lastModified = modified; },
+    write,
+    close,
+  };
 }
 
 function createRoot(fileHandle: any, permission: 'granted' | 'denied' | 'prompt' = 'prompt') {
@@ -38,6 +45,17 @@ describe('browser Markdown document writes', () => {
     await expect(documentRevision(handle)).resolves.toBe('25:3');
   });
 
+  it('preserves the read-time revision while write permission is pending', async () => {
+    const { handle } = createFileHandle('# A', 25);
+    const { root } = createRoot(handle, 'prompt');
+
+    await expect(documentWriteCapability(root, 'a.md')).resolves.toEqual({
+      supported: false,
+      revision: '25:3',
+      reason: 'permission-required',
+    });
+  });
+
   it('requests readwrite permission before creating a writable stream', async () => {
     const { handle, readSource } = createFileHandle();
     const { root, requestPermission } = createRoot(handle);
@@ -49,6 +67,19 @@ describe('browser Markdown document writes', () => {
     expect(handle.createWritable).toHaveBeenCalledTimes(1);
     expect(result.ok).toBe(true);
     expect(readSource()).toBe('# B');
+  });
+
+  it('detects an external edit before the first permission-granted save', async () => {
+    const { handle, setSource, readSource } = createFileHandle('# A', 10);
+    const { root } = createRoot(handle, 'prompt');
+    const capability = await documentWriteCapability(root, 'a.md');
+    setSource('# External', 20);
+
+    const result = await writeTextFile(root, 'a.md', '# Mine', capability.revision, false);
+
+    expect(result).toMatchObject({ ok: false, reason: 'conflict', diskSource: '# External' });
+    expect(handle.createWritable).not.toHaveBeenCalled();
+    expect(readSource()).toBe('# External');
   });
 
   it('denies the save without opening a writable stream when permission is denied', async () => {
