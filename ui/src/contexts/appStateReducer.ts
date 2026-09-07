@@ -20,12 +20,13 @@ import {
   type DocumentEditingAction,
 } from '../editor/documentWorkingCopy';
 import { reduceSettingsUiAction } from './reducers/settingsUiReducer';
+import { reduceSplitViewAction, type SplitViewAction } from '../split-view/splitViewReducer';
 
 export * from './appStateModel';
 export * from './contentTabState';
 
 export type TocStorageWriter = (key: string, value: string) => void;
-export type AppAction = Action | DocumentEditingAction;
+export type AppAction = Action | DocumentEditingAction | SplitViewAction;
 
 export function reducer(
   state: AppState,
@@ -40,6 +41,9 @@ export function reducer(
 
   const editingState = reduceDocumentEditingAction(state, action as DocumentEditingAction);
   if (editingState) return editingState;
+
+  const splitViewState = reduceSplitViewAction(state, action as SplitViewAction);
+  if (splitViewState) return splitViewState;
 
   const settingsUiState = reduceSettingsUiAction(state, action as Action, writeTocStorage);
   if (settingsUiState) return settingsUiState;
