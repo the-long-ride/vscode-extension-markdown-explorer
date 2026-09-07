@@ -28,7 +28,13 @@ interface HistoryContextValue {
   compareSelected: (left: GitRevisionSummary, right: GitRevisionSummary) => Promise<void>;
   clearHistoryView: (target?: HistoryViewTarget) => void;
 }
+export type HistoryViewContextValue = Pick<HistoryContextValue, 'historyViews' | 'clearHistoryView'>;
 const HistoryContext = createContext<HistoryContextValue | null>(null);
+const EMPTY_HISTORY_VIEWS: HistoryViewContextValue['historyViews'] = {};
+const EMPTY_HISTORY_VIEW_CONTEXT: HistoryViewContextValue = {
+  historyViews: EMPTY_HISTORY_VIEWS,
+  clearHistoryView: () => undefined,
+};
 
 export function HistoryProvider({ children }: { children: React.ReactNode }) {
   const bridge = usePlatform();
@@ -117,4 +123,9 @@ export function useHistory(): HistoryContextValue {
   const context = useContext(HistoryContext);
   if (!context) throw new Error('useHistory must be used within HistoryProvider');
   return context;
+}
+
+export function useHistoryView(): HistoryViewContextValue {
+  const context = useContext(HistoryContext);
+  return context ?? EMPTY_HISTORY_VIEW_CONTEXT;
 }
