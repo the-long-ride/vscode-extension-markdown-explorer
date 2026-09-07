@@ -4,7 +4,6 @@ const ZOOM_LEVEL_STEP = 0.2;
 const { registerRuntimeCommandHandlers } = require("./runtime-command-handlers");
 const { registerRuntimeWorkspaceHandlers } = require("./runtime-workspace-handlers");
 const { documentWriteCapabilityFor, saveWorkspaceDocument } = require("../workspace/document-write");
-const { createGitHistoryMessageHandlers } = require("../git/document-history");
 
 const {
   isSupportedFilePathLite,
@@ -244,16 +243,7 @@ function createDesktopRuntime(deps) {
     handleCancelWorkspaceScan,
     handleCancelAllWorkspaceScans
   } = commandHandlers;
-
-  const {
-    handleGetGitCapability,
-    handleListDocumentHistory,
-    handleReadGitRevision,
-    handleCompareGitRevisions,
-  } = createGitHistoryMessageHandlers({
-    getWorkspacePath: () => runtimeState.workspacePath,
-    sendHostMessage: sendScopedHostMessage,
-  });
+  const gitHistoryHandlers = require("../git/document-history").createGitHistoryMessageHandlers({ getWorkspacePath: () => runtimeState.workspacePath, sendHostMessage: sendScopedHostMessage });
 
   async function handleSaveDocument(message = {}) {
     const filePath = typeof message.filePath === 'string' ? message.filePath : '';
@@ -355,10 +345,7 @@ function createDesktopRuntime(deps) {
     handleImportDesktopFonts,
     handleRemoveImportedDesktopFont,
     handleSaveDocument,
-    handleGetGitCapability,
-    handleListDocumentHistory,
-    handleReadGitRevision,
-    handleCompareGitRevisions,
+    ...gitHistoryHandlers,
     handleDownloadUpdate,
     handleScheduleDownloadedUpdate,
     handleRestartAndApplyUpdate,
