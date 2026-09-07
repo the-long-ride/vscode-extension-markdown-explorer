@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -53,6 +53,26 @@ describe('Electron Markdown document writes', () => {
     });
 
     expect(result).toMatchObject({ ok: false, reason: 'outside-workspace' });
+  });
+
+  it('rejects a symlink inside the workspace that resolves outside it', async () => {
+    const { root } = await createWorkspace();
+    const outsideRoot = await mkdtemp(path.join(tmpdir(), 'md-explorer-write-outside-'));
+    roots.push(outsideRoot);
+    const outsideFile = path.join(outsideRoot, 'outside.md');
+    const link = path.join(root, 'linked.md');
+    await writeFile(outsideFile, '# Outside', 'utf8');
+    await symlink(outsideFile, link, 'file');
+
+    const result = await saveWorkspaceDocument({
+      workspacePath: root,
+      filePath: link,
+      source: '# Escaped',
+      expectedRevision: await revisionFor(link),
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'outside-workspace' });
+    expect(await readFile(outsideFile, 'utf8')).toBe('# Outside');
   });
 
   it('reports a missing target without creating it', async () => {

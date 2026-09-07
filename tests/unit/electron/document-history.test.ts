@@ -166,4 +166,29 @@ describe('Electron local Git document history', () => {
       await rm(outside, { force: true });
     }
   });
+
+  it('rejects Git reads outside a subfolder workspace even when they are inside the repository', async () => {
+    const repo = await createTempGitRepo();
+    const docsOid = await commitFile(repo, 'docs/inside.md', '# inside\n', 'inside');
+    const secretOid = await commitFile(repo, 'secret.md', '# secret\n', 'secret');
+    const workspace = path.join(repo, 'docs');
+
+    await expect(listDocumentHistory({
+      workspacePath: workspace,
+      filePath: path.join(repo, 'secret.md'),
+      limit: 20,
+    })).rejects.toThrow(/outside workspace/i);
+
+    await expect(readGitRevision({
+      workspacePath: workspace,
+      oid: secretOid,
+      path: 'secret.md',
+    })).rejects.toThrow(/outside workspace/i);
+
+    await expect(readGitRevision({
+      workspacePath: workspace,
+      oid: docsOid,
+      path: 'docs/inside.md',
+    })).resolves.toMatchObject({ source: '# inside\n' });
+  });
 });

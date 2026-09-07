@@ -81,4 +81,22 @@ describe('VS Code panel Git history adapter', () => {
 
     expect(readFileImpl).toHaveBeenCalledWith(path.resolve('/workspace/a.md'), 'utf8');
   });
+
+  it('rejects repository files outside a subfolder workspace', async () => {
+    const oid = 'c'.repeat(40);
+    const execFileImpl = makeExec(['/workspace\n', '/workspace\n', '/workspace\n']);
+    const adapter = createPanelGitHistoryAdapter({ execFileImpl });
+
+    await expect(adapter.listDocumentHistory({
+      workspacePath: '/workspace/docs',
+      filePath: '/workspace/secret.md',
+      limit: 20,
+    })).rejects.toThrow(/outside workspace/i);
+
+    await expect(adapter.readGitRevision({
+      workspacePath: '/workspace/docs',
+      oid,
+      path: 'secret.md',
+    })).rejects.toThrow(/outside workspace/i);
+  });
 });

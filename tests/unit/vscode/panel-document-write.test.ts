@@ -54,7 +54,9 @@ describe('VS Code panel Markdown document writes', () => {
   it('writes through workspace.fs and returns a correlated result', async () => {
     const { deps, files, writeFile } = createDeps({ '/workspace/a.md': '# A' });
 
-    const result = await handlePanelDocumentWrite(message(), deps as any);
+    const result = await handlePanelDocumentWrite(message(), deps as any, {
+      realpathImpl: async (value: string) => path.resolve(value),
+    } as any);
 
     expect(result).toMatchObject({
       command: 'saveDocumentResult',
@@ -69,7 +71,24 @@ describe('VS Code panel Markdown document writes', () => {
   it('rejects a path outside the active workspace', async () => {
     const { deps, writeFile } = createDeps({ '/workspace/a.md': '# A', '/escape.md': '# E' });
 
-    const result = await handlePanelDocumentWrite(message({ filePath: path.resolve('/escape.md') }), deps as any);
+    const result = await handlePanelDocumentWrite(message({ filePath: path.resolve('/escape.md') }), deps as any, {
+      realpathImpl: async (value: string) => path.resolve(value),
+    } as any);
+
+    expect(result).toMatchObject({ ok: false, reason: 'outside-workspace' });
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a workspace path that resolves through a symlink outside the workspace', async () => {
+    const linked = path.resolve('/workspace/linked.md');
+    const outside = path.resolve('/outside/target.md');
+    const { deps, writeFile } = createDeps({ [linked]: '# Outside' });
+    const realpathImpl = vi.fn(async (value: string) => {
+      const resolved = path.resolve(value);
+      return resolved === linked ? outside : resolved;
+    });
+
+    const result = await handlePanelDocumentWrite(message({ filePath: linked }), deps as any, { realpathImpl } as any);
 
     expect(result).toMatchObject({ ok: false, reason: 'outside-workspace' });
     expect(writeFile).not.toHaveBeenCalled();
@@ -78,7 +97,9 @@ describe('VS Code panel Markdown document writes', () => {
   it('returns conflict and disk source without writing a stale revision', async () => {
     const { deps, writeFile } = createDeps({ '/workspace/a.md': '# External' });
 
-    const result = await handlePanelDocumentWrite(message({ expectedRevision: '9:3' }), deps as any);
+    const result = await handlePanelDocumentWrite(message({ expectedRevision: '9:3' }), deps as any, {
+      realpathImpl: async (value: string) => path.resolve(value),
+    } as any);
 
     expect(result).toMatchObject({
       ok: false,
@@ -92,7 +113,9 @@ describe('VS Code panel Markdown document writes', () => {
   it('force saves even when the expected revision is stale', async () => {
     const { deps, writeFile } = createDeps({ '/workspace/a.md': '# External' });
 
-    const result = await handlePanelDocumentWrite(message({ expectedRevision: '9:3', force: true }), deps as any);
+    const result = await handlePanelDocumentWrite(message({ expectedRevision: '9:3', force: true }), deps as any, {
+      realpathImpl: async (value: string) => path.resolve(value),
+    } as any);
 
     expect(result.ok).toBe(true);
     expect(writeFile).toHaveBeenCalledTimes(1);
@@ -101,7 +124,9 @@ describe('VS Code panel Markdown document writes', () => {
   it('reports a missing target without attempting a write', async () => {
     const { deps, writeFile } = createDeps({ '/workspace/a.md': '# A' });
 
-    const result = await handlePanelDocumentWrite(message({ filePath: path.resolve('/workspace/missing.md') }), deps as any);
+    const result = await handlePanelDocumentWrite(message({ filePath: path.resolve('/workspace/missing.md') }), deps as any, {
+      realpathImpl: async (value: string) => path.resolve(value),
+    } as any);
 
     expect(result).toMatchObject({ ok: false, reason: 'missing' });
     expect(writeFile).not.toHaveBeenCalled();
