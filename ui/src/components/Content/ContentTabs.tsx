@@ -31,6 +31,10 @@ export function ContentTabs() {
     closeContentTabsToRight,
     closeOtherContentTabs,
     closeAllContentTabs,
+    openInSplit,
+    moveToOtherPane,
+    swapSplitPanes,
+    closeSplitView,
     guardUnsavedChanges = (_filePaths: string[], commit: () => void) => commit(),
     setContentTabHtmlPreview,
   } = useAppState();
@@ -159,6 +163,28 @@ export function ContentTabs() {
             requestShellLocation(bridge, contextMenu.filePath, 'open-parent-directory');
           }
           break;
+        case "openInSplit": {
+          const replacedPath = state.splitView.enabled ? state.splitView.secondary.filePath : null;
+          const open = () => openInSplit(contextMenu.filePath);
+          if (replacedPath && replacedPath !== contextMenu.filePath) {
+            const session = state.documentSessions?.[documentSessionKey(replacedPath)];
+            if (session && isDocumentDirty(session)) {
+              guardUnsavedChanges([replacedPath], open);
+              break;
+            }
+          }
+          open();
+          break;
+        }
+        case "moveToOtherPane":
+          moveToOtherPane(contextMenu.filePath);
+          break;
+        case "swapPanes":
+          swapSplitPanes();
+          break;
+        case "closeSplit":
+          closeSplitView();
+          break;
         case "closeThisTab":
           requestTabClose([contextMenu.filePath], () => closeContentTab(contextMenu.filePath));
           break;
@@ -190,12 +216,20 @@ export function ContentTabs() {
       closeContentTab,
       closeContentTabsToRight,
       closeOtherContentTabs,
+      closeSplitView,
       contextMenu,
+      guardUnsavedChanges,
+      moveToOtherPane,
+      openInSplit,
       requestTabClose,
       setContentTabHtmlPreview,
       state.appRuntime,
       state.contentTabs,
+      state.documentSessions,
       state.settings.defaultHtmlPreview,
+      state.splitView.enabled,
+      state.splitView.secondary.filePath,
+      swapSplitPanes,
       t?.previewActions?.openError,
     ],
   );
