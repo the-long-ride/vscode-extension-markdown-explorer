@@ -11,7 +11,7 @@ import {
 import { getTranslations } from '../../../../ui/src/contexts/translations';
 
 vi.mock('../../../../ui/src/contexts/HistoryContext', () => ({
-  useHistory: () => ({ historyViews: {}, clearHistoryView: vi.fn() }),
+  useHistoryView: () => ({ historyViews: {}, clearHistoryView: vi.fn() }),
 }));
 
 function renderPlainMode() {
