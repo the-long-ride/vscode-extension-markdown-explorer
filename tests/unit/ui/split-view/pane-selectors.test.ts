@@ -59,11 +59,7 @@ describe('pane document selectors', () => {
   });
 
   it('uses one shared editable session when both panes show the same file', () => {
-    const session = createEditableDocumentSession({
-      filePath: '/docs/a.md',
-      source: '# A',
-      revision: '1:3',
-    });
+    const session = createEditableDocumentSession('/docs/a.md', '# A', '1:3');
     const dirtySession = { ...session, source: '# edited' };
     const state = {
       ...initialState,
