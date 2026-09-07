@@ -10,6 +10,7 @@
 
 import { useEffect } from 'react';
 import { AppStateProvider } from './contexts/AppStateContext';
+import { HistoryProvider } from './contexts/HistoryContext';
 import { WorkspaceNavigationProvider } from './contexts/NavigationContext';
 import { App } from './App';
 
@@ -50,9 +51,11 @@ export default function AppShell() {
 
   return (
     <AppStateProvider>
-      <WorkspaceNavigationProvider>
-        <App />
-      </WorkspaceNavigationProvider>
+      <HistoryProvider>
+        <WorkspaceNavigationProvider>
+          <App />
+        </WorkspaceNavigationProvider>
+      </HistoryProvider>
     </AppStateProvider>
   );
 }
